@@ -31,7 +31,7 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
   // Theme configuration for Gates of Olympus
   const gatesOfOlympusTheme: SlotGameTheme = {
     themeName: 'Gates of Olympus',
-    backgroundImage: '/gates-of-olympus-bg.jpg',
+    backgroundImage: '/icons/gate of olympus Bg.jpg',
     symbolImages: {
       '⚡': '/icons/olympus-lightning.png',     // Lightning bolt (weight: 30 - most common)
       '🔥': '/icons/olympus-fire.png',         // Fire (weight: 25)
@@ -219,7 +219,7 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
       console.warn('Background image failed to load, continuing anyway')
       setBgImageLoaded(true)
     }
-    bgImage.src = gatesOfOlympusTheme.backgroundImage || '/gates-of-olympus-bg.jpg'
+    bgImage.src = gatesOfOlympusTheme.backgroundImage || '/icons/gate of olympus Bg.jpg'
     
     const timeout = setTimeout(() => {
       setBgImageLoaded(true)
@@ -454,7 +454,7 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
           <div 
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{ 
-              backgroundImage: `url(${gatesOfOlympusTheme.backgroundImage || '/gates-of-olympus-bg.jpg'})`,
+              backgroundImage: `url(${(gatesOfOlympusTheme.backgroundImage || '/icons/gate of olympus Bg.jpg').replace(/ /g, '%20')})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat'
@@ -465,7 +465,7 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
         <main className="relative flex flex-row items-start justify-center z-10 w-full main-content" style={{ padding: '0.2rem', overflowY: 'auto', height: '100vh', maxHeight: '100vh', position: 'relative', width: '100%' }}>
           {/* Wrapped Container - Title, Golden Banner, Grid, Sidebar, Controls with Game BG */}
           <div className="w-full relative z-20 flex flex-row gap-3 hide-scrollbar" style={{
-            backgroundImage: `url(${gatesOfOlympusTheme.backgroundImage || '/gates-of-olympus-bg.jpg'})`,
+              backgroundImage: `url(${(gatesOfOlympusTheme.backgroundImage || '/icons/gate of olympus Bg.jpg').replace(/ /g, '%20')})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
