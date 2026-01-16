@@ -158,7 +158,7 @@ export default function SlotGames({ onNavigate, onShowSignIn, onShowSignUp, onSh
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
-                {filteredGames.filter(g => g.jackpot).slice(0, 10).map((game, index) => (
+                {filteredGames.filter(g => g.isJackpot).slice(0, 10).map((game, index) => (
                   <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
                     <SlotGameCard 
                       {...game} 

@@ -11,7 +11,6 @@ interface GatesOfOlympusPageProps {
 }
 
 function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps = {}) {
-  console.log('🎮 GatesOfOlympusPage component is mounting/rendering')
   
   const [user, setUser] = useState<any>(null)
   const [balance, setBalance] = useState(0)
@@ -279,9 +278,6 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
         setBalance(initialBalance)
         setUser(storedUser)
         setLoading(false)
-        if (import.meta.env.DEV) {
-          console.log('Gates of Olympus - Initial balance from localStorage:', initialBalance)
-        }
       } else {
         setLoading(false)
       }
@@ -296,9 +292,6 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
         const newBalance = parseFloat(event.detail.balance) || 0
         setBalance(newBalance)
         setUser(event.detail)
-        if (import.meta.env.DEV) {
-          console.log('Gates of Olympus - Balance updated from event:', newBalance)
-        }
       }
     }
     
@@ -337,11 +330,6 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
 
       const response = await authAPI.me()
       
-      if (import.meta.env.DEV) {
-        console.log('Gates of Olympus - Full API response:', response)
-        console.log('Gates of Olympus - Response data:', response?.data)
-      }
-      
       const userData = response?.data || response || null
       
       if (userData) {
@@ -351,15 +339,7 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
         
         setBalance(userBalance)
         updateUserData(userData)
-        
-        if (import.meta.env.DEV) {
-          console.log('Gates of Olympus - User data:', userData)
-          console.log('Gates of Olympus - User balance set to:', userBalance)
-        }
       } else {
-        if (import.meta.env.DEV) {
-          console.warn('Gates of Olympus - No user data received from API')
-        }
         try {
           const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
           if (storedUser?.balance !== undefined) {

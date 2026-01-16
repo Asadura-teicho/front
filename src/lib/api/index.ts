@@ -55,14 +55,9 @@ if (import.meta.env.PROD && !API_URL) {
   console.error('Please set VITE_API_URL in your deployment platform settings.');
 }
 
-// Log API URL for debugging (both dev and prod to help troubleshoot)
-if (typeof window !== 'undefined') {
-  if (import.meta.env.DEV) {
-    console.log('API Base URL:', API_URL);
-  } else if (import.meta.env.PROD && API_URL) {
-    // In production, log to help debug API issues
-    console.log('API Base URL configured:', API_URL);
-  }
+// Log API URL for debugging (only in development)
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
+  console.log('API Base URL:', API_URL);
 }
 
 const api = axios.create({

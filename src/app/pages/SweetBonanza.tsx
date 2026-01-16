@@ -11,7 +11,6 @@ interface SweetBonanzaPageProps {
 }
 
 function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {}) {
-  console.log('🎮 SweetBonanzaPage component is mounting/rendering')
   
   const [user, setUser] = useState<any>(null)
   const [balance, setBalance] = useState(0)
@@ -301,9 +300,6 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
         setBalance(initialBalance)
         setUser(storedUser)
         setLoading(false) // Set loading to false immediately if we have localStorage data
-        if (import.meta.env.DEV) {
-          console.log('Sweet Bonanza - Initial balance from localStorage:', initialBalance)
-        }
       } else {
         // No stored user, but still set loading to false after a short delay
         setLoading(false)
@@ -322,9 +318,6 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
         const newBalance = parseFloat(event.detail.balance) || 0
         setBalance(newBalance)
         setUser(event.detail)
-        if (import.meta.env.DEV) {
-          console.log('Sweet Bonanza - Balance updated from event:', newBalance)
-        }
       }
     }
     
@@ -369,11 +362,7 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
 
       const response = await authAPI.me()
       
-      // Debug: Log the full response structure
-      if (import.meta.env.DEV) {
-        console.log('Sweet Bonanza - Full API response:', response)
-        console.log('Sweet Bonanza - Response data:', response?.data)
-      }
+      // Response data extraction (no logging in production)
       
       // Handle different response structures
       // Backend returns user directly, axios wraps it in response.data
@@ -390,23 +379,13 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
         // Update localStorage to sync with navbar
         updateUserData(userData)
         
-        if (import.meta.env.DEV) {
-          console.log('Sweet Bonanza - User data:', userData)
-          console.log('Sweet Bonanza - User balance set to:', userBalance)
-        }
       } else {
-        if (import.meta.env.DEV) {
-          console.warn('Sweet Bonanza - No user data received from API')
-        }
         // Try to get balance from localStorage as fallback
         try {
           const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
           if (storedUser?.balance !== undefined) {
             setBalance(storedUser.balance)
             setUser(storedUser)
-            if (import.meta.env.DEV) {
-              console.log('Sweet Bonanza - Using balance from localStorage:', storedUser.balance)
-            }
           } else {
             setError('Unable to load user data. Please try again.')
           }

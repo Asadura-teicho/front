@@ -1008,6 +1008,8 @@ function SlotGameEngine({
                       top: symbolValue === '⭐' ? '50%' : undefined,
                       position: symbolValue === '⭐' ? 'absolute' : 'relative',
                       display: 'block',
+                      visibility: 'visible',
+                      opacity: 1,
                       margin: 0,
                       padding: 0,
                       verticalAlign: 'middle'
@@ -1015,28 +1017,42 @@ function SlotGameEngine({
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       const fallbackPath = '/icons/icon.png';
-                      const currentSrc = target.src;
+                      const currentSrc = target.src || '';
                       
                       // Only try fallback if we haven't already tried it
-                      if (!currentSrc.includes('icon.png') && !currentSrc.includes(fallbackPath)) {
-                        // Try fallback image
+                      if (!currentSrc.includes('icon.png') && !currentSrc.endsWith(fallbackPath)) {
+                        // Try fallback image - ensure it's visible
                         target.src = fallbackPath;
                         target.style.display = 'block';
                         target.style.visibility = 'visible';
+                        target.style.opacity = '1';
+                        target.style.filter = 'drop-shadow(0 1px 3px rgba(0,0,0,0.2))';
                       } else {
-                        // If fallback also failed, show a placeholder instead of hiding
-                        target.style.opacity = '0.3';
-                        target.style.filter = 'grayscale(100%)';
-                        // Keep the image visible but dimmed
-                        target.style.display = 'block';
-                        target.style.visibility = 'visible';
+                        // If fallback also failed, show symbol emoji as text fallback
+                        // Keep image visible but show emoji if image completely fails
+                        target.style.display = 'none';
+                        const parent = target.parentElement;
+                        if (parent && !parent.querySelector('.symbol-fallback')) {
+                          const symbolFallback = document.createElement('div');
+                          symbolFallback.className = 'symbol-fallback absolute inset-0 flex items-center justify-center text-4xl md:text-5xl';
+                          symbolFallback.textContent = symbolValue;
+                          symbolFallback.style.zIndex = '10';
+                          parent.appendChild(symbolFallback);
+                        }
                       }
                     }}
                     onLoad={(e) => {
                       const target = e.target as HTMLImageElement;
+                      // Ensure image is fully visible when loaded
                       target.style.display = 'block';
                       target.style.visibility = 'visible';
                       target.style.opacity = '1';
+                      // Remove any fallback text if image loads successfully
+                      const parent = target.parentElement;
+                      const fallback = parent?.querySelector('.symbol-fallback');
+                      if (fallback) {
+                        fallback.remove();
+                      }
                     }}
                   />
                 </div>

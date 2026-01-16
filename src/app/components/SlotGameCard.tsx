@@ -36,6 +36,29 @@ export function SlotGameCard({
           src={image} 
           alt={title}
           className="w-full h-full object-cover"
+          loading="lazy"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent && !parent.querySelector('.game-image-placeholder')) {
+              const placeholder = document.createElement('div');
+              placeholder.className = 'game-image-placeholder absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600';
+              const text = document.createElement('div');
+              text.className = 'text-white font-bold text-sm text-center px-2';
+              text.textContent = title;
+              placeholder.appendChild(text);
+              parent.appendChild(placeholder);
+            }
+          }}
+          onLoad={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'block';
+            const placeholder = target.parentElement?.querySelector('.game-image-placeholder');
+            if (placeholder) {
+              placeholder.remove();
+            }
+          }}
         />
         
         {/* Badges */}
@@ -77,13 +100,8 @@ export function SlotGameCard({
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                console.log('OYNA button clicked for:', title);
-                console.log('onPlay callback:', onPlay);
                 if (onPlay) {
-                  console.log('Calling onPlay callback');
                   onPlay();
-                } else {
-                  console.warn('No onPlay callback provided');
                 }
               }}
             >
