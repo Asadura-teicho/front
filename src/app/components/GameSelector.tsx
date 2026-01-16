@@ -335,7 +335,7 @@ function GameCard({
               placeholder.appendChild(text);
               parent.appendChild(placeholder);
             }
-          })}
+          }}
           onLoad={(e) => {
             const target = e.target as HTMLImageElement;
             target.style.display = 'block';
