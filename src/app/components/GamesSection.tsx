@@ -1,8 +1,31 @@
 import { Button } from './ui/button';
 import { useLanguage } from '../contexts/LanguageContext';
 
-export function GamesSection() {
+interface GamesSectionProps {
+  onGameClick?: (gameId: string) => void;
+}
+
+export function GamesSection({ onGameClick }: GamesSectionProps = {}) {
   const { t } = useLanguage();
+
+  // Map game titles to game IDs
+  const getGameId = (title: string): string | null => {
+    const gameMap: Record<string, string> = {
+      'Sweet Bonanza': 'sweet-bonanza',
+      'Gates of Olympus': 'gates-of-olympus',
+    };
+    return gameMap[title] || null;
+  };
+
+  const handleGameClick = (gameTitle: string) => {
+    const gameId = getGameId(gameTitle);
+    if (gameId && onGameClick) {
+      onGameClick(gameId);
+    } else {
+      // If game not available, navigate to slots page
+      window.location.hash = 'slots';
+    }
+  };
 
   const games = [
     {
@@ -91,6 +114,7 @@ export function GamesSection() {
           {games.map((game, index) => (
             <div 
               key={index}
+              onClick={() => handleGameClick(game.title)}
               className="group relative rounded-lg sm:rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105"
             >
               <div className="aspect-[3/4] relative overflow-hidden bg-gray-200">
@@ -129,7 +153,14 @@ export function GamesSection() {
                 </div>
               </div>
               <div className="absolute inset-0 flex items-center justify-center bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button className="bg-purple-600 hover:bg-purple-700" size="sm">
+                <Button 
+                  className="bg-purple-600 hover:bg-purple-700" 
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleGameClick(game.title);
+                  }}
+                >
                   {t('games.play')}
                 </Button>
               </div>

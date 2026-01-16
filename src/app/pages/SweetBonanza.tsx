@@ -747,31 +747,38 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
                     spinning={spinning}
                     onSpinningChange={setSpinning}
                     onSpin={async (bet) => {
-                      const response = await sweetBonanzaAPI.playGame(bet)
-                      const gameData = response.data?.data || response.data || {}
-                      
-                      // Update balance and user data
-                      const newBalance = gameData.userBalance || gameData.newBalance || gameData.balanceAfter || balance
-                      setBalance(newBalance)
-                      
-                      if (user) {
-                        const updatedUser = { ...user, balance: newBalance }
-                        updateUserData(updatedUser)
-                        setUser(updatedUser)
-                      }
-                      
-                      // Update win amount for display
-                      const win = gameData.winAmount || gameData.actualWin || 0
-                      setWinAmount(win)
-                      
-                      // Return game data in format expected by SlotGameEngine
-                      return {
-                        reels: gameData.reels || [],
-                        winAmount: win,
-                        winningPositions: gameData.winningPositions || [],
-                        netChange: gameData.netChange || 0,
-                        percentageChange: gameData.percentageChange || 0,
-                        userBalance: newBalance
+                      try {
+                        const response = await sweetBonanzaAPI.playGame(bet)
+                        const gameData = response.data?.data || response.data || {}
+                        
+                        // Update balance and user data
+                        const newBalance = gameData.userBalance || gameData.newBalance || gameData.balanceAfter || (balance - bet + (gameData.winAmount || 0))
+                        setBalance(newBalance)
+                        
+                        if (user) {
+                          const updatedUser = { ...user, balance: newBalance }
+                          updateUserData(updatedUser)
+                          setUser(updatedUser)
+                        }
+                        
+                        // Update win amount for display
+                        const win = gameData.winAmount || gameData.actualWin || 0
+                        setWinAmount(win)
+                        
+                        // Return game data in format expected by SlotGameEngine
+                        return {
+                          reels: gameData.reels || [],
+                          winAmount: win,
+                          winningPositions: gameData.winningPositions || [],
+                          netChange: gameData.netChange || 0,
+                          percentageChange: gameData.percentageChange || 0,
+                          userBalance: newBalance
+                        }
+                      } catch (error: any) {
+                        console.error('Spin error:', error)
+                        setError(error?.response?.data?.message || error?.message || 'Failed to spin. Please try again.')
+                        // Re-throw to let SlotGameEngine handle it
+                        throw error
                       }
                     }}
                     onWin={(winAmount) => {
@@ -856,12 +863,26 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
                               onClick={(e) => {
                                 e.preventDefault()
                                 e.stopPropagation()
-                                if (!engineSpinning && parseFloat(engineBetAmount) > 0 && parseFloat(engineBetAmount) <= engineBalance) {
-                                  onSpin()
-                                } else if (parseFloat(engineBetAmount) <= 0) {
+                                const bet = parseFloat(engineBetAmount) || 0
+                                if (engineSpinning) {
+                                  return // Already spinning
+                                }
+                                if (bet <= 0) {
                                   setError('Please enter a bet amount')
-                                } else if (parseFloat(engineBetAmount) > engineBalance) {
+                                  return
+                                }
+                                if (bet > engineBalance) {
                                   setError('Insufficient balance')
+                                  return
+                                }
+                                // Clear any previous errors
+                                setError('')
+                                setSuccess('')
+                                // Trigger spin
+                                try {
+                                  onSpin()
+                                } catch (err: any) {
+                                  setError(err?.message || 'Failed to start spin')
                                 }
                               }}
                               disabled={engineSpinning || parseFloat(engineBetAmount) <= 0 || parseFloat(engineBetAmount) > engineBalance}

@@ -74,8 +74,8 @@ export function SignIn({ onClose, onSwitchToSignUp, onNavigate }: SignInProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-fade-in">
-      <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-scale-in">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-3 sm:p-4 animate-fade-in" style={{ opacity: 1 }}>
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-scale-in z-[10000]" style={{ opacity: 1, backgroundColor: '#ffffff' }}>
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-700 to-pink-600 p-4 sm:p-6 relative">
           <button

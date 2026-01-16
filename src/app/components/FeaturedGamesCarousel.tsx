@@ -2,8 +2,35 @@ import { Button } from './ui/button';
 import { Star } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
-export function FeaturedGamesCarousel() {
+interface FeaturedGamesCarouselProps {
+  onGameClick?: (gameId: string) => void;
+}
+
+export function FeaturedGamesCarousel({ onGameClick }: FeaturedGamesCarouselProps = {}) {
   const { t } = useLanguage();
+
+  // Map game titles to game IDs
+  const getGameId = (title: string): string | null => {
+    const gameMap: Record<string, string> = {
+      'Sweet Bonanza 1000': 'sweet-bonanza',
+      'Sweet Bonanza': 'sweet-bonanza',
+      'Sugar Rush': 'sweet-bonanza', // Map to available game
+      'Starlight Princess': 'sweet-bonanza', // Map to available game
+      'Gates of Gatot Kaca': 'gates-of-olympus',
+      'Gates of Olympus': 'gates-of-olympus',
+    };
+    return gameMap[title] || null;
+  };
+
+  const handleGameClick = (gameTitle: string) => {
+    const gameId = getGameId(gameTitle);
+    if (gameId && onGameClick) {
+      onGameClick(gameId);
+    } else {
+      // If game not available, navigate to slots page
+      window.location.hash = 'slots';
+    }
+  };
 
   const featuredGames = [
     {
@@ -58,6 +85,7 @@ export function FeaturedGamesCarousel() {
           {featuredGames.map((game, index) => (
             <div 
               key={index}
+              onClick={() => handleGameClick(game.title)}
               className="group relative rounded-xl sm:rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105"
             >
               <div className="aspect-[3/4] relative overflow-hidden">
@@ -85,7 +113,14 @@ export function FeaturedGamesCarousel() {
                         <p className="text-xs text-white/70">Jackpot</p>
                         <p className="text-yellow-400 font-bold text-sm sm:text-lg">{game.jackpot}</p>
                       </div>
-                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-xs">
+                      <Button 
+                        size="sm" 
+                        className="bg-purple-600 hover:bg-purple-700 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleGameClick(game.title);
+                        }}
+                      >
                         {t('games.play')}
                       </Button>
                     </div>

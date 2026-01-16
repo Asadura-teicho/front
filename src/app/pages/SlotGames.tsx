@@ -20,9 +20,11 @@ interface SlotGamesProps {
   onShowDeposit?: () => void;
   onShowMessages?: () => void;
   onShowSweetBonanza?: () => void;
+  onShowGatesOfOlympus?: () => void;
+  onShowGame?: (gameId: string) => void;
 }
 
-export default function SlotGames({ onNavigate, onShowSignIn, onShowSignUp, onShowDeposit, onShowMessages, onShowSweetBonanza }: SlotGamesProps) {
+export default function SlotGames({ onNavigate, onShowSignIn, onShowSignUp, onShowDeposit, onShowMessages, onShowSweetBonanza, onShowGatesOfOlympus, onShowGame }: SlotGamesProps) {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -162,7 +164,14 @@ export default function SlotGames({ onNavigate, onShowSignIn, onShowSignUp, onSh
                   <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
                     <SlotGameCard 
                       {...game} 
-                      onPlay={game.title === 'Sweet Bonanza' ? onShowSweetBonanza : undefined}
+                      onPlay={
+                        game.title === 'Sweet Bonanza' ? onShowSweetBonanza :
+                        game.title === 'Gates of Olympus' ? onShowGatesOfOlympus :
+                        onShowGame ? () => {
+                          const gameId = game.title.toLowerCase().replace(/\s+/g, '-');
+                          onShowGame(gameId);
+                        } : undefined
+                      }
                     />
                   </div>
                 ))}
@@ -183,7 +192,14 @@ export default function SlotGames({ onNavigate, onShowSignIn, onShowSignUp, onSh
                   <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
                     <SlotGameCard 
                       {...game} 
-                      onPlay={game.title === 'Sweet Bonanza' ? onShowSweetBonanza : undefined}
+                      onPlay={
+                        game.title === 'Sweet Bonanza' ? onShowSweetBonanza :
+                        game.title === 'Gates of Olympus' ? onShowGatesOfOlympus :
+                        onShowGame ? () => {
+                          const gameId = game.title.toLowerCase().replace(/\s+/g, '-');
+                          onShowGame(gameId);
+                        } : undefined
+                      }
                     />
                   </div>
                 ))}
@@ -198,7 +214,14 @@ export default function SlotGames({ onNavigate, onShowSignIn, onShowSignUp, onSh
                   <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 0.05}s` }}>
                     <SlotGameCard 
                       {...game} 
-                      onPlay={game.title === 'Sweet Bonanza' ? onShowSweetBonanza : undefined}
+                      onPlay={
+                        game.title === 'Sweet Bonanza' ? onShowSweetBonanza :
+                        game.title === 'Gates of Olympus' ? onShowGatesOfOlympus :
+                        onShowGame ? () => {
+                          const gameId = game.title.toLowerCase().replace(/\s+/g, '-');
+                          onShowGame(gameId);
+                        } : undefined
+                      }
                     />
                   </div>
                 ))}
@@ -241,7 +264,14 @@ export default function SlotGames({ onNavigate, onShowSignIn, onShowSignUp, onSh
                 <SlotGameCard 
                   key={index} 
                   {...game} 
-                  onPlay={game.title === 'Sweet Bonanza' ? onShowSweetBonanza : undefined}
+                  onPlay={
+                    game.title === 'Sweet Bonanza' ? onShowSweetBonanza :
+                    game.title === 'Gates of Olympus' ? onShowGatesOfOlympus :
+                    onShowGame ? () => {
+                      const gameId = game.title.toLowerCase().replace(/\s+/g, '-');
+                      onShowGame(gameId);
+                    } : undefined
+                  }
                 />
               ))}
             </div>

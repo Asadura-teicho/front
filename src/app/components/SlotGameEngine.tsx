@@ -691,7 +691,16 @@ function SlotGameEngine({
     
     try {
       // Call backend API
-      const gameData = await onSpin(bet)
+      let gameData
+      try {
+        gameData = await onSpin(bet)
+      } catch (apiError: any) {
+        // API call failed - stop animations and show error
+        await Promise.all(reelAnimations)
+        onSpinningChange(false)
+        onError?.(apiError?.response?.data?.message || apiError?.message || 'Failed to connect to game server. Please check your connection and try again.')
+        return
+      }
       
       await Promise.all(reelAnimations)
       

@@ -161,8 +161,8 @@ export function SignUp({ onClose, onSwitchToSignIn, onNavigate }: SignUpProps) {
   const genders = ['Male', 'Female', 'Other'];
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-100 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto relative">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" style={{ opacity: 1 }}>
+      <div className="bg-gray-100 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto relative z-[10000]" style={{ opacity: 1, backgroundColor: '#f3f4f6' }}>
         {/* Header */}
         <div className="bg-gray-100 p-6 pb-0 relative">
           <button
