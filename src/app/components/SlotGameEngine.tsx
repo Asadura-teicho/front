@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { gsap } from 'gsap'
+import { GSAPAnimationHelpers } from '../../lib/utils/gsapPresets'
 
 export interface SymbolEntity {
   id: string // Stable unique ID that never changes
@@ -167,13 +168,7 @@ function SlotGameEngine({
         const cellElement = document.querySelector(`[data-cell-key="${cellKey}"]`)
         const imgElement = cellElement?.querySelector('img')
         if (cellElement && imgElement) {
-          gsap.set([cellElement, imgElement], {
-            rotation: 0,
-            scale: 1,
-            x: 0,
-            y: 0,
-            opacity: 1
-          })
+          GSAPAnimationHelpers.reset([cellElement, imgElement])
           burstTargets.push(imgElement as HTMLElement)
           burstCellTargets.push(cellElement as HTMLElement)
         }
@@ -189,8 +184,10 @@ function SlotGameEngine({
           return
         }
         
-        const burstTimeline = gsap.timeline({
-          onComplete: () => {
+        GSAPAnimationHelpers.applyBurst(
+          burstCellTargets,
+          burstTargets,
+          () => {
             if (cascadeLockRef.current) {
               setRemovingCells((prev) => {
                 const updated = new Set(prev)
@@ -200,19 +197,7 @@ function SlotGameEngine({
             }
             resolve()
           }
-        })
-        
-        burstTimeline.to(burstCellTargets, {
-          scale: 0,
-          duration: 0.2,
-          ease: 'power1.out'
-        }, 0)
-        burstTimeline.to(burstTargets, {
-          scale: 0,
-          opacity: 0,
-          duration: 0.2,
-          ease: 'power1.out'
-        }, 0)
+        )
       })
       
       // Phase 2: Subtle delay after burst
@@ -303,21 +288,10 @@ function SlotGameEngine({
         const imgElement = document.querySelector(`img[data-symbol-id="${fallData.symbolId}"]`)
         const cellElement = imgElement?.closest('[data-cell-key]') as HTMLElement | null
         if (imgElement) {
-          gsap.set(imgElement, {
-            rotation: 0,
-            scale: 1,
-            x: 0,
-            y: 0,
-            opacity: 1
-          })
+          GSAPAnimationHelpers.reset(imgElement)
           
           if (cellElement) {
-            gsap.set(cellElement, {
-              rotation: 0,
-              scale: 1,
-              x: 0,
-              y: 0,
-            })
+            GSAPAnimationHelpers.reset(cellElement)
           }
           
           fallTargets.push({
@@ -368,32 +342,12 @@ function SlotGameEngine({
         await new Promise<void>((resolve) => {
           const gravityAnimations = gravityTargets.map(({ element, cellElement, fromRow, toRow }) => {
             const fallDistance = (fromRow - toRow) * 100
-            const anims = []
-            if (cellElement) {
-              anims.push(gsap.fromTo(cellElement, 
-                { y: `${fallDistance}%`, x: 0, rotation: 0 },
-                { 
-                  y: '0%', 
-                  x: 0,
-                  rotation: 0,
-                  duration: 0.25 * finalCascadeSlowdown,
-                  ease: 'bounce.out',
-                  clearProps: 'transform'
-                }
-              ))
-            }
-            anims.push(gsap.fromTo(element, 
-              { y: `${fallDistance}%`, x: 0, rotation: 0 },
-              { 
-                y: '0%', 
-                x: 0,
-                rotation: 0,
-                duration: 0.25 * finalCascadeSlowdown,
-                ease: 'bounce.out',
-                clearProps: 'transform'
-              }
-            ))
-            return anims
+            return GSAPAnimationHelpers.applyGravity(
+              element,
+              fallDistance,
+              cellElement || null,
+              finalCascadeSlowdown
+            )
           }).flat()
           
           const gravityTimeline = gsap.timeline({
@@ -435,32 +389,12 @@ function SlotGameEngine({
         await new Promise<void>((resolve) => {
           const spawnAnimations = spawnTargets.map(({ element, cellElement, fromRow, toRow }) => {
             const fallDistance = (fromRow - toRow) * 100
-            const anims = []
-            if (cellElement) {
-              anims.push(gsap.fromTo(cellElement, 
-                { y: `${fallDistance}%`, x: 0, rotation: 0 },
-                { 
-                  y: '0%', 
-                  x: 0,
-                  rotation: 0,
-                  duration: 0.25 * finalCascadeSlowdown,
-                  ease: 'power2.in',
-                  clearProps: 'transform'
-                }
-              ))
-            }
-            anims.push(gsap.fromTo(element, 
-              { y: `${fallDistance}%`, x: 0, rotation: 0 },
-              { 
-                y: '0%', 
-                x: 0,
-                rotation: 0,
-                duration: 0.25 * finalCascadeSlowdown,
-                ease: 'power2.in',
-                clearProps: 'transform'
-              }
-            ))
-            return anims
+            return GSAPAnimationHelpers.applySpawn(
+              element,
+              fallDistance,
+              cellElement || null,
+              finalCascadeSlowdown
+            )
           }).flat()
           
           const spawnTimeline = gsap.timeline({
@@ -602,7 +536,6 @@ function SlotGameEngine({
     
     onSpinningChange(true)
     setWinAmount(0)
-    setIsWinning(false)
     
     // Kill any existing GSAP animations
     requestAnimationFrame(() => {
@@ -613,13 +546,7 @@ function SlotGameEngine({
           const imgElement = cellElement?.querySelector('img')
           if (cellElement && imgElement) {
             gsap.killTweensOf([cellElement, imgElement])
-            gsap.set([cellElement, imgElement], {
-              scale: 1,
-              rotation: 0,
-              x: 0,
-              y: 0,
-              opacity: 1
-            })
+            GSAPAnimationHelpers.reset([cellElement, imgElement])
           }
         }
       }
@@ -638,13 +565,7 @@ function SlotGameEngine({
           const cellElement = document.querySelector(`[data-cell-key="${cellKey}"]`)
           const imgElement = cellElement?.querySelector('img')
           if (imgElement) {
-            gsap.set(imgElement, {
-              rotation: 0,
-              scale: 1,
-              x: 0,
-              y: 0,
-              opacity: 1
-            })
+            GSAPAnimationHelpers.reset(imgElement)
           }
         }
       }
@@ -769,12 +690,7 @@ function SlotGameEngine({
               const cellElement = document.querySelector(`[data-cell-key="${cellKey}"]`)
               const imgElement = cellElement?.querySelector('img')
               if (cellElement && imgElement) {
-                gsap.set([cellElement, imgElement], {
-                  scale: 1,
-                  rotation: 0,
-                  x: 0,
-                  y: 0
-                })
+                GSAPAnimationHelpers.reset([cellElement, imgElement])
                 gsap.to(cellElement, {
                   scale: 1.05,
                   duration: 0.6,
@@ -859,7 +775,7 @@ function SlotGameEngine({
     spinReels()
   }
   
-  // Responsive scale based on viewport width
+  // Responsive scale based on viewport width and height
   // Fixed logical grid size - animations use logical coordinates
   const logicalWidth = theme.gridWidth
   const logicalHeight = theme.gridHeight
@@ -870,20 +786,37 @@ function SlotGameEngine({
       if (typeof window === 'undefined') return
       
       const width = window.innerWidth
+      const height = window.innerHeight
       
-      // Calculate available width (account for padding/margins, sidebar, etc.)
-      // Use a reasonable minimum available width estimate
-      const estimatedSidebarWidth = 300 // Approximate sidebar/controls width
-      const estimatedPadding = 80 // Approximate total padding/margins
-      const availableWidth = Math.max(width - estimatedSidebarWidth - estimatedPadding, logicalWidth)
+      // Calculate available space based on screen size
+      let availableWidth = width
+      let availableHeight = height
       
-      // Calculate scale factor - ensure grid fits within available width
-      // Add some margin (20px) to prevent edge touching
-      const targetWidth = availableWidth - 40
-      let calculatedScale = Math.min(1, targetWidth / logicalWidth)
+      // Account for different screen sizes
+      if (width < 640) {
+        // Mobile: account for controls and padding
+        availableWidth = width - 40 // 20px padding on each side
+        availableHeight = height - 300 // Space for controls above/below
+      } else if (width < 1024) {
+        // Tablet: account for sidebars and padding
+        availableWidth = width - 100
+        availableHeight = height - 200
+      } else {
+        // Desktop: account for sidebar, banner, and padding
+        availableWidth = width - 400 // Sidebar + banner + padding
+        availableHeight = height - 150
+      }
       
-      // Set min/max scale constraints (0.5 to 1.0)
-      calculatedScale = Math.max(0.5, Math.min(1.0, calculatedScale))
+      // Calculate scale based on both width and height
+      const scaleByWidth = (availableWidth - 40) / logicalWidth // 20px margin each side
+      const scaleByHeight = (availableHeight - 40) / logicalHeight // 20px margin top/bottom
+      
+      // Use the smaller scale to ensure grid fits both dimensions
+      let calculatedScale = Math.min(scaleByWidth, scaleByHeight, 1.0)
+      
+      // Set min/max scale constraints
+      // Minimum scale 0.3 for very small screens, max 1.0
+      calculatedScale = Math.max(0.3, Math.min(1.0, calculatedScale))
       
       setScale(calculatedScale)
     }
@@ -892,20 +825,19 @@ function SlotGameEngine({
     const handleResize = () => updateScale()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [logicalWidth])
+  }, [logicalWidth, logicalHeight])
   
   // Scaled display size
   const displayWidth = logicalWidth * scale
   const displayHeight = logicalHeight * scale
   
   return (
-    <div className="relative mx-auto flex items-center justify-center" style={{ 
-      width: `${displayWidth}px`,
-      height: `${displayHeight}px`,
-      maxWidth: `${displayWidth}px`,
-      minWidth: `${displayWidth}px`,
-      maxHeight: `${displayHeight}px`,
-      minHeight: `${displayHeight}px`
+    <div className="relative mx-auto flex items-center justify-center w-full" style={{ 
+      width: '100%',
+      maxWidth: '100%',
+      minHeight: `${displayHeight}px`,
+      height: 'auto',
+      padding: '10px'
     }}>
       <div 
         className="relative"
@@ -915,23 +847,18 @@ function SlotGameEngine({
           transform: `scale(${scale})`,
           transformOrigin: 'center center',
           position: 'relative',
-          left: '50%',
-          top: '50%',
-          marginLeft: `-${logicalWidth / 2}px`,
-          marginTop: `-${logicalHeight / 2}px`
+          margin: '0 auto'
         }}
       >
       {/* Reels Grid */}
-      <div className="relative rounded-xl md:rounded-2xl p-3 md:p-4 shadow-2xl flex-shrink-0" style={{
+      <div className="relative rounded-lg sm:rounded-xl md:rounded-2xl p-2 sm:p-3 md:p-4 shadow-2xl flex-shrink-0 border-4 sm:border-6 md:border-8 border-white" style={{
         background: 'linear-gradient(135deg, #FF6B9D 0%, #C44569 50%, #F8B500 100%)',
-        border: '8px solid #FFFFFF',
         boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 0 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,182,193,0.5)',
         position: 'relative',
         overflow: 'visible',
         width: `${theme.gridWidth}px`,
         height: `${theme.gridHeight}px`,
-        marginTop: '0.5rem',
-        marginBottom: 0,
+        margin: '0 auto',
         boxSizing: 'border-box',
         flexShrink: 0,
         backgroundImage: `
@@ -939,7 +866,7 @@ function SlotGameEngine({
           linear-gradient(135deg, #FF6B9D 0%, #C44569 50%, #F8B500 100%)
         `
       }}>
-        <div className="grid grid-cols-6 grid-rows-5 gap-1.5 md:gap-2 relative z-10" style={{ 
+        <div className="grid grid-cols-6 grid-rows-5 gap-1 sm:gap-1.5 md:gap-2 relative z-10" style={{ 
           overflow: 'visible',
           padding: 0,
           margin: 0,

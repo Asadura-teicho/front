@@ -65,6 +65,15 @@ export function LiveCasinoSection() {
             <div 
               key={index}
               className="group relative rounded-lg sm:rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  // Navigate to live casino or open table
+                }
+              }}
+              aria-label={`Join ${table.title}`}
             >
               <div className="aspect-[4/5] relative overflow-hidden">
                 <img 
@@ -74,26 +83,26 @@ export function LiveCasinoSection() {
                 />
                 
                 {/* Live Badge */}
-                <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex items-center gap-1 sm:gap-2 bg-red-600 text-white text-xs font-bold px-2 sm:px-3 py-1 rounded-full">
+                <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex items-center gap-1 sm:gap-2 bg-red-600 text-white text-xs font-bold px-2 sm:px-3 py-1 rounded-full pointer-events-none">
                   <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse"></div>
                   {t('live.live')}
                 </div>
 
                 {/* VIP Badge */}
                 {table.isVIP && (
-                  <div className="absolute top-2 sm:top-3 right-2 sm:right-3 bg-yellow-500 text-black text-xs font-bold px-2 sm:px-3 py-1 rounded-full">
+                  <div className="absolute top-2 sm:top-3 right-2 sm:right-3 bg-yellow-500 text-black text-xs font-bold px-2 sm:px-3 py-1 rounded-full pointer-events-none">
                     {t('live.vip')}
                   </div>
                 )}
 
                 {/* Player Count */}
-                <div className="absolute top-10 sm:top-12 right-2 sm:right-3 flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full">
+                <div className="absolute top-10 sm:top-12 right-2 sm:right-3 flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full pointer-events-none">
                   <Users className="w-3 h-3" />
                   <span>{table.players}</span>
                 </div>
 
                 {/* Table Info */}
-                <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-t from-black via-black/90 to-transparent">
+                <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-t from-black via-black/90 to-transparent pointer-events-none">
                   <div className="space-y-2 sm:space-y-3">
                     <div>
                       <h3 className="font-bold text-white text-sm sm:text-lg line-clamp-1">{table.title}</h3>
@@ -111,7 +120,13 @@ export function LiveCasinoSection() {
                       </div>
                     </div>
 
-                    <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-xs sm:text-sm" size="sm">
+                    <Button 
+                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-xs sm:text-sm pointer-events-auto" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
                       {t('live.joinTable')}
                     </Button>
                   </div>
@@ -119,7 +134,7 @@ export function LiveCasinoSection() {
               </div>
 
               {/* Hover Effect */}
-              <div className="absolute inset-0 border-2 sm:border-4 border-purple-500 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg sm:rounded-xl"></div>
+              <div className="absolute inset-0 border-2 sm:border-4 border-purple-500 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg sm:rounded-xl pointer-events-none"></div>
             </div>
           ))}
         </div>

@@ -55,6 +55,15 @@ export function CategoryCards() {
               <div 
                 key={index}
                 className="group relative rounded-xl sm:rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    // Navigate to category
+                  }
+                }}
+                aria-label={`Explore ${category.title}`}
               >
                 <div className="aspect-[3/4] relative overflow-hidden bg-gray-200">
                   <img 
@@ -112,8 +121,13 @@ export function CategoryCards() {
                 </div>
 
                 {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Button className="bg-purple-600 hover:bg-purple-700 text-xs sm:text-sm">
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                  <Button 
+                    className="bg-purple-600 hover:bg-purple-700 text-xs sm:text-sm pointer-events-auto"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
                     {t('games.playNow')}
                   </Button>
                 </div>

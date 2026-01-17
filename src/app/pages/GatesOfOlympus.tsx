@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { authAPI } from '../../lib/api/auth.api'
-import sweetBonanzaAPI from '../../lib/api/sweetBonanza.api'
+import gatesOfOlympusAPI from '../../lib/api/gatesOfOlympus.api'
 import { updateUserData } from '../../lib/utils/auth'
 import SlotGameEngine, { SlotGameTheme } from '../components/SlotGameEngine'
 import { GameSelector } from '../components/GameSelector'
@@ -13,7 +13,15 @@ interface GatesOfOlympusPageProps {
 function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps = {}) {
   
   const [user, setUser] = useState<any>(null)
-  const [balance, setBalance] = useState(0)
+  const [balance, setBalance] = useState(() => {
+    // Initialize balance from localStorage if available
+    try {
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+      return storedUser?.balance || 0
+    } catch {
+      return 0
+    }
+  })
   const [loading, setLoading] = useState(true)
   const [gameLoading, setGameLoading] = useState(true)
   const [loadingProgress, setLoadingProgress] = useState(0)
@@ -31,17 +39,17 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
   // Theme configuration for Gates of Olympus
   const gatesOfOlympusTheme: SlotGameTheme = {
     themeName: 'Gates of Olympus',
-    backgroundImage: '/icons/gate of olympus Bg.jpg',
+    backgroundImage: '/Gol/gate of olympus Bg.jpg',
     symbolImages: {
-      '⚡': '/icons/olympus-lightning.png',     // Lightning bolt (weight: 30 - most common)
-      '🔥': '/icons/olympus-fire.png',         // Fire (weight: 25)
-      '🌊': '/icons/olympus-water.png',        // Water (weight: 20)
-      '🌪️': '/icons/olympus-wind.png',        // Wind (weight: 15)
-      '⚔️': '/icons/olympus-sword.png',       // Sword (weight: 12)
-      '🛡️': '/icons/olympus-shield.png',      // Shield (weight: 8)
-      '👑': '/icons/olympus-crown.png',       // Crown (weight: 5)
-      '⭐': '/icons/olympus-star.png',        // Star/Scatter (weight: 3)
-      '💎': '/icons/olympus-gem.png',        // Gem/Bonus (weight: 2 - least common)
+      '⚡': '/Gol/gooicon1.png',              // Symbol 1 (weight: 30 - most common)
+      '🔥': '/Gol/gooicon2.png',              // Symbol 2 (weight: 25)
+      '🌊': '/Gol/gooicon3.png',              // Symbol 3 (weight: 20)
+      '🌪️': '/Gol/gooicon4.png',             // Symbol 4 (weight: 15)
+      '⚔️': '/Gol/gooicon5.png',             // Symbol 5 (weight: 12)
+      '🛡️': '/Gol/gooicon cup.png',          // Cup (weight: 8)
+      '👑': '/Gol/gooicon crown.png',        // Crown (weight: 5)
+      '⭐': '/Gol/gooicon time glass.png',    // Time Glass/Scatter (weight: 3)
+      '💎': '/Gol/gooicon ring.png',         // Ring/Bonus (weight: 2 - least common)
     },
     symbolWeights: {
       '⚡': 30, '🔥': 25, '🌊': 20, '🌪️': 15, '⚔️': 12,
@@ -109,25 +117,40 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
   const playSound = (soundRef, volume = 0.7, useBeep = false, beepFreq = 800) => {
     if (!soundEnabled) return
     
-    if (useBeep) {
+    // If beep requested or no sound ref, use beep sound
+    if (useBeep || !soundRef?.current) {
       createBeepSound(beepFreq, 0.3)
       return
     }
     
-    if (!soundRef?.current) return
+    const audio = soundRef.current
+    if (!audio) {
+      createBeepSound(beepFreq, 0.3)
+      return
+    }
+    
+    // Check if audio has error state
+    if (audio.error) {
+      // Audio file has error - fallback to beep
+      createBeepSound(beepFreq, 0.3)
+      return
+    }
     
     try {
-      soundRef.current.currentTime = 0
-      soundRef.current.volume = volume
+      // Reset audio to start
+      audio.currentTime = 0
+      audio.volume = volume
       
-      const playPromise = soundRef.current.play()
+      // Try to play - handle errors gracefully
+      const playPromise = audio.play()
       if (playPromise !== undefined) {
         playPromise.catch(() => {
+          // Any play error - fallback to beep sound silently
           createBeepSound(beepFreq, 0.3)
         })
       }
-    } catch (error) {
-      console.error('Error playing sound:', error)
+    } catch (error: any) {
+      // Catch any other errors and fallback silently
       createBeepSound(beepFreq, 0.3)
     }
   }
@@ -140,35 +163,49 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
       bgMusicRef.current.volume = 0.3
       bgMusicRef.current.preload = 'auto'
       
+      // Try to load audio files from public folder, fallback to beep sounds
+      // Use lazy loading to prevent 416 errors with empty/missing files
       try {
-        winSoundRef.current = new Audio('/gates-of-olympus-win.mp3')
-        winSoundRef.current.volume = 0.7
-        winSoundRef.current.preload = 'none'
-        winSoundRef.current.onerror = () => {
+        // Win sound - create but don't load immediately
+        const winAudio = new Audio('/gates-of-olympus-win.mp3')
+        winAudio.volume = 0.7
+        winAudio.preload = 'none'
+        // Suppress errors - will fallback to beep sound
+        winAudio.addEventListener('error', () => {
+          // Audio file failed to load - set to null to use beep fallback
           winSoundRef.current = null
-        }
+        }, { once: true })
+        winSoundRef.current = winAudio
       } catch (e) {
         winSoundRef.current = null
       }
       
       try {
-        lossSoundRef.current = new Audio('/gates-of-olympus-loss.mp3')
-        lossSoundRef.current.volume = 0.7
-        lossSoundRef.current.preload = 'none'
-        lossSoundRef.current.onerror = () => {
+        // Loss sound - create but don't load immediately
+        const lossAudio = new Audio('/gates-of-olympus-loss.mp3')
+        lossAudio.volume = 0.7
+        lossAudio.preload = 'none'
+        // Suppress errors - will fallback to beep sound
+        lossAudio.addEventListener('error', () => {
+          // Audio file failed to load - set to null to use beep fallback
           lossSoundRef.current = null
-        }
+        }, { once: true })
+        lossSoundRef.current = lossAudio
       } catch (e) {
         lossSoundRef.current = null
       }
       
       try {
-        spinSoundRef.current = new Audio('/gates-of-olympus-spin.mp3')
-        spinSoundRef.current.volume = 0.5
-        spinSoundRef.current.preload = 'none'
-        spinSoundRef.current.onerror = () => {
+        // Spin sound - create but don't load immediately
+        const spinAudio = new Audio('/gates-of-olympus-spin.mp3')
+        spinAudio.volume = 0.5
+        spinAudio.preload = 'none'
+        // Suppress errors - will fallback to beep sound
+        spinAudio.addEventListener('error', () => {
+          // Audio file failed to load - set to null to use beep fallback
           spinSoundRef.current = null
-        }
+        }, { once: true })
+        spinSoundRef.current = spinAudio
       } catch (e) {
         spinSoundRef.current = null
       }
@@ -219,7 +256,7 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
       console.warn('Background image failed to load, continuing anyway')
       setBgImageLoaded(true)
     }
-    bgImage.src = gatesOfOlympusTheme.backgroundImage || '/icons/gate of olympus Bg.jpg'
+    bgImage.src = gatesOfOlympusTheme.backgroundImage || '/Gol/gate of olympus Bg.jpg'
     
     const timeout = setTimeout(() => {
       setBgImageLoaded(true)
@@ -365,8 +402,6 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
         setTimeout(() => {
           if (onClose) {
             onClose()
-          } else {
-            window.location.href = '/'
           }
         }, 2000)
       }
@@ -444,7 +479,7 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black relative flex w-full flex-col" style={{ 
+    <div className="fixed inset-0 z-[9999] bg-black flex w-full flex-col" style={{ 
         width: '100%',
         minHeight: '100vh',
         overflow: 'visible'
@@ -454,7 +489,7 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
           <div 
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{ 
-              backgroundImage: `url(${(gatesOfOlympusTheme.backgroundImage || '/icons/gate of olympus Bg.jpg').replace(/ /g, '%20')})`,
+              backgroundImage: `url(${(gatesOfOlympusTheme.backgroundImage || '/Gol/gate of olympus Bg.jpg').replace(/ /g, '%20')})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat'
@@ -465,7 +500,7 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
         <main className="relative flex flex-row items-start justify-center z-10 w-full main-content" style={{ padding: '0.2rem', overflowY: 'auto', height: '100vh', maxHeight: '100vh', position: 'relative', width: '100%' }}>
           {/* Wrapped Container - Title, Golden Banner, Grid, Sidebar, Controls with Game BG */}
           <div className="w-full relative z-20 flex flex-row gap-3 hide-scrollbar" style={{
-              backgroundImage: `url(${(gatesOfOlympusTheme.backgroundImage || '/icons/gate of olympus Bg.jpg').replace(/ /g, '%20')})`,
+              backgroundImage: `url(${(gatesOfOlympusTheme.backgroundImage || '/Gol/gate of olympus Bg.jpg').replace(/ /g, '%20')})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
@@ -554,9 +589,9 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
               </div>
 
               {/* Game Area - Side-by-side Layout with Golden Banner */}
-              <div className=" w-full  z-20 flex flex-row items-start justify-center  flex-1 min-h-0" style={{ minHeight: 0, maxWidth: '100%', boxSizing: 'border-box' }}>
+              <div className="w-full z-20 flex flex-col lg:flex-row items-center lg:items-start justify-center flex-1 min-h-0" style={{ minHeight: 0, maxWidth: '100%', boxSizing: 'border-box', gap: '1rem' }}>
                 {/* Left Side - Golden Banner and Green Boxes - Desktop only */}
-                <div className="relative hidden lg:flex flex-col items-center gap-2 flex-shrink-0" style={{ minWidth: '160px', maxWidth: '180px', marginTop: '1rem', marginLeft: '1rem', marginRight: '-5rem' }}>
+                <div className="relative hidden lg:flex flex-col items-center gap-2 flex-shrink-0" style={{ minWidth: '160px', maxWidth: '180px', marginTop: '1rem', alignSelf: 'flex-start' }}>
                   {/* 10000x Banner - Golden Box, Glowing */}
                   <div className="relative rounded-xl p-2 md:p-2.5 text-center glowBox flex-shrink-0" style={{
                     background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FFD700 100%)',
@@ -652,24 +687,23 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
                 </div>
 
                 {/* Center - Game Grid and Sidebar Toggle */}
-                <div className="flex-1 flex flex-col items-center justify-center min-h-0 relative" style={{ minWidth: 0, position: 'relative', overflow: 'visible', zIndex: 30, pointerEvents: 'auto', width: '100%' }}>
-                  {/* Sidebar Toggle Button */}
+                <div className="flex-1 flex flex-col items-center justify-center min-h-0 relative w-full pt-2 md:pt-4" style={{ minWidth: 0, position: 'relative', overflow: 'visible', zIndex: 30, pointerEvents: 'auto', width: '100%' }}>
+                  {/* Sidebar Toggle Button - Inside game area, right beside grid - Always visible */}
                   <button
                     onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
-                      console.log('Sidebar toggle clicked')
                       setShowGamesSidebar(!showGamesSidebar)
                     }}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 z-50 w-10 h-10 md:w-11 md:h-11 bg-purple-600 text-white rounded-full flex items-center justify-center hover:bg-purple-700 transition-all shadow-xl border-2 border-white/30 hover:scale-110 cursor-pointer"
+                    className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 z-50 w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 bg-purple-600 text-white rounded-full flex items-center justify-center hover:bg-purple-700 transition-all shadow-xl border-2 border-white/30 hover:scale-110 cursor-pointer"
                     style={{ 
-                      right: showGamesSidebar ? 'calc(100% + 10px)' : '4px',
+                      right: showGamesSidebar ? 'calc(100% + 8px)' : '4px',
                       transition: 'right 0.3s ease-in-out',
                       pointerEvents: 'auto'
                     }}
                     title={showGamesSidebar ? 'Hide Games' : 'Show Games'}
                   >
-                    <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showGamesSidebar ? "M9 5l7 7-7 7" : "M15 19l-7-7 7-7"} />
                     </svg>
                   </button>
@@ -684,8 +718,22 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
                     onSpinningChange={setSpinning}
                     onSpin={async (bet) => {
                       try {
+                        // Validate bet before API call
+                        if (!bet || bet <= 0 || isNaN(bet)) {
+                          throw new Error('Invalid bet amount')
+                        }
+                        
+                        if (bet > balance) {
+                          throw new Error(`Insufficient balance. You have ₺${balance.toFixed(2)}, but need ₺${bet.toFixed(2)}`)
+                        }
+
                         const response = await gatesOfOlympusAPI.playGame(bet)
                         const gameData = response.data?.data || response.data || {}
+                        
+                        if (!gameData || !Array.isArray(gameData.reels)) {
+                          console.error('Invalid game data received:', gameData)
+                          throw new Error('Invalid response from server. Please try again.')
+                        }
                         
                         const newBalance = gameData.userBalance || gameData.newBalance || gameData.balanceAfter || (balance - bet + (gameData.winAmount || 0))
                         setBalance(newBalance)
@@ -709,7 +757,8 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
                         }
                       } catch (error: any) {
                         console.error('Spin error:', error)
-                        setError(error?.response?.data?.message || error?.message || 'Failed to spin. Please try again.')
+                        const errorMessage = error?.response?.data?.message || error?.message || 'Failed to spin. Please check your connection and try again.'
+                        setError(errorMessage)
                         // Re-throw to let SlotGameEngine handle it
                         throw error
                       }
@@ -720,7 +769,8 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
                       setIsWinning(true)
                       setError('')
                       
-                      playSound(winSoundRef, 0.7, !winSoundRef.current, 1000)
+                      // Play win sound - use beep if audio not available
+                      playSound(winSoundRef, 0.7, !winSoundRef.current || !!winSoundRef.current?.error, 1000)
                       
                       setGameHistory(prev => [{
                         id: Date.now(),
@@ -749,7 +799,7 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
                     onLoss={() => {
                       setError('')
                       setSuccess('')
-                      playSound(lossSoundRef, 0.7, !lossSoundRef.current, 300)
+                      playSound(lossSoundRef, 0.7, !lossSoundRef.current || !!lossSoundRef.current?.error, 300)
                     }}
                     onError={(errorMessage) => {
                       setError(errorMessage)
@@ -765,12 +815,11 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
                     spinTrigger={spinTrigger}
                     renderControls={({ betAmount: engineBetAmount, onBetAmountChange, onSpin, onAutoSpin, spinning: engineSpinning, balance: engineBalance, autoSpin: engineAutoSpin, autoSpinCount: engineAutoSpinCount }) => (
                       <>
-                        {/* Spin Controls - Positioned at bottom-right corner with slight overlap */}
-                        <div className="absolute right-0 bottom-0 flex flex-col items-center gap-2 z-50" style={{ 
-                          pointerEvents: 'auto',
-                          transform: 'translate(12px, 12px)'
+                        {/* Spin Controls - Responsive positioning */}
+                        <div className="absolute right-0 sm:right-2 bottom-0 sm:bottom-2 flex flex-col items-center gap-1.5 sm:gap-2 z-50" style={{ 
+                          pointerEvents: 'auto'
                         }}>
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
                             {/* Minus Button */}
                             <button
                               onClick={(e) => {
@@ -783,7 +832,7 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
                                 setTimeout(() => setShowBetPopup(false), 1500)
                               }}
                               disabled={engineSpinning || parseFloat(engineBetAmount) <= 10}
-                              className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gray-900 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white font-bold text-2xl transition-all duration-150 active:scale-90 hover:ring-2 hover:ring-purple-500"
+                              className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-gray-900 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white font-bold text-lg sm:text-xl md:text-2xl transition-all duration-150 active:scale-90 hover:ring-2 hover:ring-purple-500"
                               title="Decrease Bet"
                             >
                               −
@@ -817,14 +866,14 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
                                 }
                               }}
                               disabled={engineSpinning || parseFloat(engineBetAmount) <= 0 || parseFloat(engineBetAmount) > engineBalance}
-                              className="relative w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-purple-700 to-pink-700 hover:from-purple-800 hover:to-pink-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-all duration-200 active:scale-90 hover:ring-4 hover:ring-pink-500 spinButtonPop"
+                              className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-purple-700 to-pink-700 hover:from-purple-800 hover:to-pink-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-all duration-200 active:scale-90 hover:ring-4 hover:ring-pink-500 spinButtonPop"
                               title="Spin"
                               style={{
                                 animation: !engineSpinning && parseFloat(engineBetAmount) > 0 && parseFloat(engineBetAmount) <= engineBalance ? 'spinButtonPop 2s ease-in-out infinite' : 'none'
                               }}
                             >
-                              <div className="absolute -top-1 -left-1 text-white text-sm">✨</div>
-                              <svg className="w-7 h-7 md:w-9 md:h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <div className="absolute -top-0.5 -left-0.5 sm:-top-1 sm:-left-1 text-white text-xs sm:text-sm">✨</div>
+                              <svg className="w-6 h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                               </svg>
                             </button>
@@ -842,7 +891,7 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
                                 setTimeout(() => setShowBetPopup(false), 1500)
                               }}
                               disabled={engineSpinning || parseFloat(engineBetAmount) >= engineBalance || parseFloat(engineBetAmount) >= 1000}
-                              className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gray-900 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white font-bold text-2xl transition-all duration-150 active:scale-90 hover:ring-2 hover:ring-purple-500"
+                              className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-gray-900 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white font-bold text-lg sm:text-xl md:text-2xl transition-all duration-150 active:scale-90 hover:ring-2 hover:ring-purple-500"
                               title="Increase Bet"
                             >
                               +
@@ -857,20 +906,22 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
                               onAutoSpin(5)
                             }}
                             disabled={engineSpinning || parseFloat(engineBetAmount) <= 0 || parseFloat(engineBetAmount) > engineBalance || engineAutoSpin}
-                            className="px-5 py-2.5 bg-purple-900 hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-all duration-150 active:scale-95 hover:ring-2 hover:ring-purple-500 flex items-center gap-2"
+                            className="px-3 py-1.5 sm:px-4 sm:py-2 md:px-5 md:py-2.5 bg-purple-900 hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold rounded-lg sm:rounded-xl transition-all duration-150 active:scale-95 hover:ring-2 hover:ring-purple-500 flex items-center gap-1 sm:gap-2"
                             title="Autoplay 5 Spins"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            AUTOPLAY (5)
+                            <span className="hidden sm:inline">AUTOPLAY</span>
+                            <span className="sm:hidden">AUTO</span>
+                            <span className="hidden md:inline">(5)</span>
                           </button>
                         </div>
                         
                         {/* Bottom Controls - Positioned at bottom corners */}
                         {/* Left Bottom - Mute and Info Buttons - Below grid */}
-                        <div className="absolute left-2 -bottom-16 flex flex-row gap-1.5 z-50" style={{ pointerEvents: 'auto' }}>
+                        <div className="absolute left-1 sm:left-2 -bottom-12 sm:-bottom-16 flex flex-row gap-1 sm:gap-1.5 z-50" style={{ pointerEvents: 'auto' }}>
                           {/* Mute Button */}
                           <button
                             onClick={(e) => {
@@ -921,19 +972,20 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
                       </div>
                     
                     {/* Win/Error Messages - Immediately after grid with no spacing */}
-                    {(error || success) && (
-                      <div className="flex items-center justify-center w-full" style={{ 
-                        margin: 0, 
-                        padding: 0,
-                        marginTop: 0 
-                      }}>
+                    {(error || success || (balance === 0 && !loading)) && (
+                      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2 max-w-md w-full px-4">
+                        {balance === 0 && !loading && !error && (
+                          <div className="bg-yellow-600/90 text-white px-4 py-3 rounded-lg shadow-xl text-center animate-fade-in">
+                            <p className="text-sm font-bold">⚠️ No balance available. Please deposit funds to play.</p>
+                          </div>
+                        )}
                         {error && (
-                          <div className="bg-red-600/90 text-white px-4 py-2 rounded-lg shadow-lg" style={{ margin: 0 }}>
+                          <div className="bg-red-600/90 text-white px-4 py-3 rounded-lg shadow-xl text-center animate-fade-in">
                             <p className="text-sm font-bold">{error}</p>
                           </div>
                         )}
                         {success && (
-                          <div className="bg-green-600/90 text-white px-4 py-2 rounded-lg shadow-lg" style={{ margin: 0 }}>
+                          <div className="bg-green-600/90 text-white px-4 py-3 rounded-lg shadow-xl text-center animate-fade-in">
                             <p className="text-sm font-bold">{success}</p>
                           </div>
                         )}

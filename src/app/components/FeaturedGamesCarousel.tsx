@@ -4,9 +4,10 @@ import { useLanguage } from '../contexts/LanguageContext';
 
 interface FeaturedGamesCarouselProps {
   onGameClick?: (gameId: string) => void;
+  onNavigate?: (page: string) => void;
 }
 
-export function FeaturedGamesCarousel({ onGameClick }: FeaturedGamesCarouselProps = {}) {
+export function FeaturedGamesCarousel({ onGameClick, onNavigate }: FeaturedGamesCarouselProps = {}) {
   const { t } = useLanguage();
 
   // Map game titles to game IDs
@@ -28,7 +29,9 @@ export function FeaturedGamesCarousel({ onGameClick }: FeaturedGamesCarouselProp
       onGameClick(gameId);
     } else {
       // If game not available, navigate to slots page
-      window.location.hash = 'slots';
+      if (onNavigate) {
+        onNavigate('slots');
+      }
     }
   };
 
@@ -87,6 +90,15 @@ export function FeaturedGamesCarousel({ onGameClick }: FeaturedGamesCarouselProp
               key={index}
               onClick={() => handleGameClick(game.title)}
               className="group relative rounded-xl sm:rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleGameClick(game.title);
+                }
+              }}
+              aria-label={`Play ${game.title}`}
             >
               <div className="aspect-[3/4] relative overflow-hidden">
                 <img 
@@ -129,8 +141,8 @@ export function FeaturedGamesCarousel({ onGameClick }: FeaturedGamesCarouselProp
               </div>
 
               {/* Hover overlay with play button */}
-              <div className="absolute inset-0 bg-gradient-to-t from-purple-900/90 to-purple-600/90 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <div className="text-center space-y-3 sm:space-y-4">
+              <div className="absolute inset-0 bg-gradient-to-t from-purple-900/90 to-purple-600/90 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                <div className="text-center space-y-3 sm:space-y-4 pointer-events-none">
                   <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center mx-auto">
                     <div className="w-0 h-0 border-l-[12px] sm:border-l-[16px] border-l-purple-600 border-t-[8px] sm:border-t-[10px] border-t-transparent border-b-[8px] sm:border-b-[10px] border-b-transparent ml-1"></div>
                   </div>

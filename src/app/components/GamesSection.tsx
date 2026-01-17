@@ -3,9 +3,10 @@ import { useLanguage } from '../contexts/LanguageContext';
 
 interface GamesSectionProps {
   onGameClick?: (gameId: string) => void;
+  onNavigate?: (page: string) => void;
 }
 
-export function GamesSection({ onGameClick }: GamesSectionProps = {}) {
+export function GamesSection({ onGameClick, onNavigate }: GamesSectionProps = {}) {
   const { t } = useLanguage();
 
   // Map game titles to game IDs
@@ -23,7 +24,9 @@ export function GamesSection({ onGameClick }: GamesSectionProps = {}) {
       onGameClick(gameId);
     } else {
       // If game not available, navigate to slots page
-      window.location.hash = 'slots';
+      if (onNavigate) {
+        onNavigate('slots');
+      }
     }
   };
 
@@ -116,6 +119,15 @@ export function GamesSection({ onGameClick }: GamesSectionProps = {}) {
               key={index}
               onClick={() => handleGameClick(game.title)}
               className="group relative rounded-lg sm:rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleGameClick(game.title);
+                }
+              }}
+              aria-label={`Play ${game.title}`}
             >
               <div className="aspect-[3/4] relative overflow-hidden bg-gray-200">
                 <img 
@@ -152,9 +164,9 @@ export function GamesSection({ onGameClick }: GamesSectionProps = {}) {
                   <p className="text-xs text-white/80 line-clamp-1">{game.provider}</p>
                 </div>
               </div>
-              <div className="absolute inset-0 flex items-center justify-center bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute inset-0 flex items-center justify-center bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                 <Button 
-                  className="bg-purple-600 hover:bg-purple-700" 
+                  className="bg-purple-600 hover:bg-purple-700 pointer-events-auto" 
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();

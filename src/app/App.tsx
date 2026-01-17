@@ -620,8 +620,14 @@ function AppContent() {
         />
         <HeroSlider />
         <PartnersSection />
-        <FeaturedGamesCarousel onGameClick={(gameId) => setCurrentGame(gameId)} />
-        <GamesSection onGameClick={(gameId) => setCurrentGame(gameId)} />
+        <FeaturedGamesCarousel 
+          onGameClick={(gameId) => setCurrentGame(gameId)} 
+          onNavigate={handleNavigation}
+        />
+        <GamesSection 
+          onGameClick={(gameId) => setCurrentGame(gameId)} 
+          onNavigate={handleNavigation}
+        />
         <CategoryCards />
         <LiveCasinoSection />
         <SportsSection />

@@ -25,11 +25,32 @@ export function SlotGameCard({
 }: SlotGameCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Only trigger if clicking directly on the card container, not on child buttons
+    if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.card-click-area')) {
+      if (onPlay) {
+        onPlay();
+      }
+    }
+  };
+
   return (
     <div 
-      className="group relative rounded-lg sm:rounded-xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105"
+      className="group relative rounded-lg sm:rounded-xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105 card-click-area"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={handleCardClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (onPlay) {
+            onPlay();
+          }
+        }
+      }}
+      aria-label={`Play ${title}`}
     >
       <div className="aspect-[4/3] relative overflow-hidden bg-gradient-to-br from-purple-900 to-blue-900">
         <img 
@@ -62,7 +83,7 @@ export function SlotGameCard({
         />
         
         {/* Badges */}
-        <div className="absolute top-1.5 sm:top-2 left-1.5 sm:left-2 flex flex-wrap gap-1">
+        <div className="absolute top-1.5 sm:top-2 left-1.5 sm:left-2 flex flex-wrap gap-1 pointer-events-none">
           {isHot && (
             <div className="bg-red-600 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex items-center gap-0.5 sm:gap-1 animate-pulse-glow">
               <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
@@ -79,24 +100,26 @@ export function SlotGameCard({
 
         {/* New Badge */}
         {isNew && (
-          <div className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 bg-green-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded animate-bounce-subtle">
+          <div className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 bg-green-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded animate-bounce-subtle pointer-events-none">
             NEW
           </div>
         )}
 
         {/* RTP Badge */}
         {rtp && !isNew && (
-          <div className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 bg-black/70 backdrop-blur-sm text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
+          <div className="absolute top-1.5 sm:top-2 right-1.5 sm:right-2 bg-black/70 backdrop-blur-sm text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded pointer-events-none">
             RTP {rtp}%
           </div>
         )}
 
         {/* Hover Overlay */}
-        <div className={`absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+        <div 
+          className={`absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent transition-opacity duration-300 pointer-events-none ${isHovered ? 'opacity-100' : 'opacity-0'}`}
+        >
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 sm:gap-3">
             <Button 
               size="sm" 
-              className="bg-purple-600 hover:bg-purple-700 gap-1.5 sm:gap-2 text-xs sm:text-sm"
+              className="bg-purple-600 hover:bg-purple-700 gap-1.5 sm:gap-2 text-xs sm:text-sm pointer-events-auto"
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -108,14 +131,22 @@ export function SlotGameCard({
               <Play className="w-3 h-3 sm:w-4 sm:h-4" />
               OYNA
             </Button>
-            <Button variant="outline" size="sm" className="bg-white/10 text-white border-white/30 hover:bg-white/20">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-white/10 text-white border-white/30 hover:bg-white/20 pointer-events-auto"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+            >
               <Info className="w-3 h-3 sm:w-4 sm:h-4" />
             </Button>
           </div>
         </div>
 
         {/* Bottom Info - Always Visible */}
-        <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 bg-gradient-to-t from-black/90 to-transparent">
+        <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 bg-gradient-to-t from-black/90 to-transparent pointer-events-none">
           <h3 className="font-bold text-white text-xs sm:text-sm mb-0.5 sm:mb-1 line-clamp-1">{title}</h3>
           <p className="text-[10px] sm:text-xs text-white/80 line-clamp-1">{provider}</p>
         </div>

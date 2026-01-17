@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SlidersHorizontal, Grid3x3, List, Home } from 'lucide-react';
+import { Grid3x3, List } from 'lucide-react';
 import { Search } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { TrendingUp } from 'lucide-react';
@@ -25,7 +25,6 @@ interface SlotGamesProps {
 }
 
 export default function SlotGames({ onNavigate, onShowSignIn, onShowSignUp, onShowDeposit, onShowMessages, onShowSweetBonanza, onShowGatesOfOlympus, onShowGame }: SlotGamesProps) {
-  const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Generate comprehensive slot games list
@@ -68,20 +67,6 @@ export default function SlotGames({ onNavigate, onShowSignIn, onShowSignUp, onSh
     { title: 'Madame Destiny', provider: 'Pragmatic Play', image: 'https://images.unsplash.com/photo-1566563255308-753861417000?w=400', isNew: true, rtp: '95.2' },
   ];
 
-  const categories = [
-    'Tümü',
-    'Popüler',
-    'Yeni',
-    'Jackpot',
-    'Megaways',
-    'Bonus Buy',
-    'Canlı',
-    'Masalar',
-    'Klasik'
-  ];
-
-  const [activeCategory, setActiveCategory] = useState('Tümü');
-
   const [selectedCategory, setSelectedCategory] = useState('Tümü');
   const [selectedProvider, setSelectedProvider] = useState('Tümü');
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,10 +77,38 @@ export default function SlotGames({ onNavigate, onShowSignIn, onShowSignUp, onSh
     onNavigate?.(page);
   };
 
-  // Filtered games based on search query
-  const filteredGames = slotGames.filter(game => 
-    game.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Comprehensive filtering function
+  const filteredGames = slotGames.filter(game => {
+    // Search filter - only apply if search query exists
+    if (searchQuery.trim()) {
+      const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           game.provider.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      if (!matchesSearch) return false;
+    }
+
+    // Category filter - only apply if not "All"
+    if (selectedCategory && selectedCategory !== 'Tümü') {
+      if (selectedCategory === 'Popüler' && !game.isHot) return false;
+      if (selectedCategory === 'Yeni' && !game.isNew) return false;
+      if (selectedCategory === 'Jackpot' && !game.isJackpot) return false;
+    }
+
+    // Provider filter - only apply if not "All"
+    if (selectedProvider && selectedProvider !== 'Tümü' && game.provider !== selectedProvider) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Separate games by category (from original list for showcase, from filtered for sections)
+  const jackpotGames = slotGames.filter(g => g.isJackpot);
+  const hotGames = slotGames.filter(g => g.isHot);
+  
+  // For display in sections, use filtered games but keep original for showcase
+  const displayedJackpotGames = filteredGames.filter(g => g.isJackpot);
+  const displayedHotGames = filteredGames.filter(g => g.isHot);
 
   // Jackpot games
   const jackpots = Array.from({ length: 5 }, (_, i) => i + 1);
@@ -142,7 +155,7 @@ export default function SlotGames({ onNavigate, onShowSignIn, onShowSignUp, onSh
               </div>
             </div>
 
-            {/* Jackpot Games */}
+            {/* Jackpot Section - Always show golden cards */}
             <div className="mb-6 sm:mb-8 animate-scale-in">
               <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-1.5 sm:gap-2">
@@ -151,18 +164,23 @@ export default function SlotGames({ onNavigate, onShowSignIn, onShowSignUp, onSh
                 </h2>
               </div>
 
+              {/* Golden Jackpot Cards - Always visible */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
                 {jackpots.map((jackpot, index) => (
-                  <div key={index} className="animate-fade-in stagger-1" style={{ animationDelay: `${index * 0.1}s` }}>
-                    <JackpotCounter />
-                  </div>
+                  <JackpotCounter key={`counter-${index}`} />
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
-                {filteredGames.filter(g => g.isJackpot).slice(0, 10).map((game, index) => (
-                  <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+              {/* Jackpot Games Grid - Only show if there are jackpot games */}
+              {displayedJackpotGames.length > 0 && (
+                <div className={`grid gap-2 sm:gap-3 md:gap-4 ${
+                  viewMode === 'grid' 
+                    ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5' 
+                    : 'grid-cols-1'
+                }`}>
+                  {displayedJackpotGames.slice(0, 10).map((game, index) => (
                     <SlotGameCard 
+                      key={`jackpot-${game.title}-${index}-${game.provider}`}
                       {...game} 
                       onPlay={
                         game.title === 'Sweet Bonanza' ? onShowSweetBonanza :
@@ -173,65 +191,52 @@ export default function SlotGames({ onNavigate, onShowSignIn, onShowSignUp, onSh
                         } : undefined
                       }
                     />
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Hot Games */}
-            <div className="mb-6 sm:mb-8 animate-scale-in" style={{ animationDelay: '0.2s' }}>
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-1.5 sm:gap-2">
-                  <Flame className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-red-500 animate-wiggle" />
-                  {t('slotGames.hot')}
-                </h2>
-              </div>
+            {/* Hot Games - Always show if there are hot games */}
+            {hotGames.length > 0 && (
+              <div className="mb-6 sm:mb-8 animate-scale-in" style={{ animationDelay: '0.2s' }}>
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-1.5 sm:gap-2">
+                    <Flame className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-red-500 animate-wiggle" />
+                    {t('slotGames.hot')}
+                  </h2>
+                </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
-                {filteredGames.filter(g => g.isHot).map((game, index) => (
-                  <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                    <SlotGameCard 
-                      {...game} 
-                      onPlay={
-                        game.title === 'Sweet Bonanza' ? onShowSweetBonanza :
-                        game.title === 'Gates of Olympus' ? onShowGatesOfOlympus :
-                        onShowGame ? () => {
-                          const gameId = game.title.toLowerCase().replace(/\s+/g, '-');
-                          onShowGame(gameId);
-                        } : undefined
-                      }
-                    />
+                {displayedHotGames.length > 0 ? (
+                  <div className={`grid gap-2 sm:gap-3 md:gap-4 ${
+                    viewMode === 'grid' 
+                      ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5' 
+                      : 'grid-cols-1'
+                  }`}>
+                    {displayedHotGames.map((game, index) => (
+                      <SlotGameCard 
+                        key={`hot-${game.title}-${index}-${game.provider}`}
+                        {...game} 
+                        onPlay={
+                          game.title === 'Sweet Bonanza' ? onShowSweetBonanza :
+                          game.title === 'Gates of Olympus' ? onShowGatesOfOlympus :
+                          onShowGame ? () => {
+                            const gameId = game.title.toLowerCase().replace(/\s+/g, '-');
+                            onShowGame(gameId);
+                          } : undefined
+                        }
+                      />
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <p className="text-gray-500 text-center py-4 bg-white rounded-lg border border-gray-200 p-4">No hot games match your current filters.</p>
+                )}
               </div>
-            </div>
-
-            {/* All Games */}
-            <div className="animate-scale-in" style={{ animationDelay: '0.6s' }}>
-              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">{t('slotGames.allGames')}</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
-                {filteredGames.map((game, index) => (
-                  <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 0.05}s` }}>
-                    <SlotGameCard 
-                      {...game} 
-                      onPlay={
-                        game.title === 'Sweet Bonanza' ? onShowSweetBonanza :
-                        game.title === 'Gates of Olympus' ? onShowGatesOfOlympus :
-                        onShowGame ? () => {
-                          const gameId = game.title.toLowerCase().replace(/\s+/g, '-');
-                          onShowGame(gameId);
-                        } : undefined
-                      }
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
 
             {/* Controls */}
-            <div className="flex items-center justify-between bg-white rounded-lg p-3 sm:p-4 shadow-sm mt-6">
+            <div className="flex items-center justify-between bg-white rounded-lg p-3 sm:p-4 shadow-sm mb-6">
               <div className="text-gray-700 text-xs sm:text-sm md:text-base">
-                <span className="font-semibold">{slotGames.length}</span> oyun bulundu
+                <span className="font-semibold">{filteredGames.length}</span> oyun bulundu
               </div>
               
               <div className="flex items-center gap-1.5 sm:gap-2">
@@ -239,7 +244,8 @@ export default function SlotGames({ onNavigate, onShowSignIn, onShowSignUp, onSh
                   variant={viewMode === 'grid' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setViewMode('grid')}
-                  className={`${viewMode === 'grid' ? 'bg-purple-700' : ''} px-2 sm:px-3`}
+                  className={`${viewMode === 'grid' ? 'bg-purple-700 text-white hover:bg-purple-800' : ''} px-2 sm:px-3`}
+                  aria-label="Grid view"
                 >
                   <Grid3x3 className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
@@ -247,41 +253,68 @@ export default function SlotGames({ onNavigate, onShowSignIn, onShowSignUp, onSh
                   variant={viewMode === 'list' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setViewMode('list')}
-                  className={`${viewMode === 'list' ? 'bg-purple-700' : ''} px-2 sm:px-3`}
+                  className={`${viewMode === 'list' ? 'bg-purple-700 text-white hover:bg-purple-800' : ''} px-2 sm:px-3`}
+                  aria-label="List view"
                 >
                   <List className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
               </div>
             </div>
 
-            {/* Games Grid */}
-            <div className={`grid gap-2 sm:gap-3 md:gap-4 mt-4 sm:mt-6 ${
-              viewMode === 'grid' 
-                ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6' 
-                : 'grid-cols-1'
-            }`}>
-              {slotGames.map((game, index) => (
-                <SlotGameCard 
-                  key={index} 
-                  {...game} 
-                  onPlay={
-                    game.title === 'Sweet Bonanza' ? onShowSweetBonanza :
-                    game.title === 'Gates of Olympus' ? onShowGatesOfOlympus :
-                    onShowGame ? () => {
-                      const gameId = game.title.toLowerCase().replace(/\s+/g, '-');
-                      onShowGame(gameId);
-                    } : undefined
-                  }
-                />
-              ))}
+            {/* All Games - Always show this section */}
+            <div className="animate-scale-in" style={{ animationDelay: '0.6s' }}>
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
+                {selectedCategory !== 'Tümü' || selectedProvider !== 'Tümü' || searchQuery 
+                  ? `${t('slotGames.allGames')} (${filteredGames.length})`
+                  : t('slotGames.allGames')
+                }
+              </h2>
+              {filteredGames.length > 0 ? (
+                <div className={`grid gap-2 sm:gap-3 md:gap-4 ${
+                  viewMode === 'grid' 
+                    ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5' 
+                    : 'grid-cols-1'
+                }`}>
+                  {filteredGames.map((game, index) => (
+                    <SlotGameCard 
+                      key={`game-${game.title}-${index}-${game.provider}`}
+                      {...game} 
+                      onPlay={
+                        game.title === 'Sweet Bonanza' ? onShowSweetBonanza :
+                        game.title === 'Gates of Olympus' ? onShowGatesOfOlympus :
+                        onShowGame ? () => {
+                          const gameId = game.title.toLowerCase().replace(/\s+/g, '-');
+                          onShowGame(gameId);
+                        } : undefined
+                      }
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 animate-fade-in bg-white rounded-lg border border-gray-200">
+                  <p className="text-gray-500 text-lg mb-4">No games found matching your criteria.</p>
+                  <Button 
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedCategory('Tümü');
+                      setSelectedProvider('Tümü');
+                    }}
+                    className="bg-purple-700 hover:bg-purple-800 text-white"
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              )}
             </div>
 
-            {/* Load More */}
-            <div className="text-center py-6 sm:py-8">
-              <Button className="bg-purple-700 hover:bg-purple-800 px-6 sm:px-8 py-4 sm:py-6 text-sm sm:text-base md:text-lg">
-                Daha Fazla Yükle
-              </Button>
-            </div>
+            {/* Load More - Only show if there are more games to load in the future */}
+            {filteredGames.length >= 20 && (
+              <div className="text-center py-6 sm:py-8">
+                <Button className="bg-purple-700 hover:bg-purple-800 px-6 sm:px-8 py-4 sm:py-6 text-sm sm:text-base md:text-lg">
+                  Daha Fazla Yükle
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

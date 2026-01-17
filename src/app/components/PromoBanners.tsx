@@ -57,6 +57,15 @@ export function PromoBanners() {
               <div 
                 key={index}
                 className={`relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer group`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    // Navigate to promotion details
+                  }
+                }}
+                aria-label={`View ${promo.title} promotion details`}
               >
                 <div className="aspect-[4/3] relative overflow-hidden bg-gray-200">
                   <img 
@@ -87,7 +96,7 @@ export function PromoBanners() {
                   <div className={`absolute inset-0 bg-gradient-to-br ${promo.gradient} mix-blend-multiply opacity-80`}></div>
                   
                   {/* Content */}
-                  <div className="absolute inset-0 p-4 sm:p-6 flex flex-col justify-between text-white">
+                  <div className="absolute inset-0 p-4 sm:p-6 flex flex-col justify-between text-white pointer-events-none">
                     {/* Icon */}
                     <div className="flex justify-end">
                       <div className="bg-white/20 backdrop-blur-sm rounded-full p-2 sm:p-3">
@@ -109,7 +118,7 @@ export function PromoBanners() {
                 </div>
 
                 {/* Hover Effect */}
-                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                   <span className="text-white font-bold text-sm sm:text-lg">{t('promo.seeDetails')}</span>
                 </div>
               </div>

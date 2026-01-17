@@ -134,7 +134,40 @@ api.interceptors.response.use(
       }
     }
 
-    // Log error for debugging
+    // Handle network errors (no response from server)
+    if (!error.response) {
+      // Network error - server unreachable, CORS, timeout, etc.
+      const networkError = {
+        message: error.message || 'Network error occurred',
+        code: error.code,
+        timeout: error.code === 'ECONNABORTED',
+        networkUnavailable: error.message?.includes('Network Error'),
+      };
+
+      // Only log critical errors in production
+      if (import.meta.env.PROD) {
+        if (error.code === 'ECONNABORTED') {
+          console.error('API Request timeout - server may be slow or unreachable');
+        } else if (error.message?.includes('Network Error')) {
+          console.error('Network error - check your internet connection or API server status');
+        }
+      } else {
+        console.error('API Network Error:', networkError);
+      }
+
+      // Enhance error object
+      error.apiError = {
+        url: originalRequest?.url,
+        method: originalRequest?.method,
+        timestamp: new Date().toISOString(),
+        networkError: true,
+        message: networkError.message,
+      };
+
+      return Promise.reject(error);
+    }
+
+    // Log error for debugging (response errors)
     const fullUrl = (originalRequest?.baseURL || '') + (originalRequest?.url || '');
     const errorInfo = {
       fullUrl,
@@ -152,6 +185,8 @@ api.interceptors.response.use(
       // In production, log 404s to help debug routing issues
       if (error.response?.status === 404) {
         console.error('API 404 Error - Check if VITE_API_URL includes /api:', errorInfo);
+      } else if (error.response?.status >= 500) {
+        console.error('API Server Error:', error.response?.status, errorInfo.message);
       }
     }
 
@@ -160,6 +195,8 @@ api.interceptors.response.use(
       url: originalRequest?.url,
       method: originalRequest?.method,
       timestamp: new Date().toISOString(),
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message,
     };
 
     return Promise.reject(error);
