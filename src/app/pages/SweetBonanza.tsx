@@ -762,6 +762,7 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
                 </div>
               </button>
             </div>
+            
 
             {/* Center: game grid */}
             <div
@@ -1118,7 +1119,9 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
             </div>
           )}
         </div>
+        </div>
       </main>
+     
 
       {/* Bet Amount Popup */}
       {showBetPopup && (
