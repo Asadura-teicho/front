@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
 import { gsap } from 'gsap'
-import { GSAPAnimationHelpers } from '../../lib/utils/gsapPresets'
 
 export interface SymbolEntity {
   id: string // Stable unique ID that never changes
@@ -113,6 +112,33 @@ function SlotGameEngine({
     placeholderSymbolIndexRef.current = 0
   }
   
+  // Helper: get a random symbol value using weight map (for fallback spins)
+  const getWeightedRandomSymbolValue = () => {
+    const entries = Object.entries(theme.symbolWeights)
+    if (!entries.length) return getDefaultSymbolValue()
+
+    const totalWeight = entries.reduce((sum, [, weight]) => sum + weight, 0)
+    let threshold = Math.random() * totalWeight
+
+    for (const [symbol, weight] of entries) {
+      threshold -= weight
+      if (threshold <= 0) return symbol
+    }
+
+    return getDefaultSymbolValue()
+  }
+
+  // Helper: generate an entire random reel set (used when backend data is invalid)
+  const generateRandomReels = (): SymbolEntity[][] => {
+    return Array(theme.gridColumns)
+      .fill(null)
+      .map(() =>
+        Array(theme.gridRows)
+          .fill(null)
+          .map(() => createSymbolEntity(getWeightedRandomSymbolValue())),
+      )
+  }
+  
   // Helper function to get image path for a symbol
   const getSymbolImage = (symbolValue: string): string => {
     const imagePath = theme.symbolImages[symbolValue] || '/icons/icon.png'
@@ -165,12 +191,18 @@ function SlotGameEngine({
       const burstTargets: HTMLElement[] = []
       const burstCellTargets: HTMLElement[] = []
       cellKeys.forEach((cellKey) => {
-        const cellElement = document.querySelector(`[data-cell-key="${cellKey}"]`) as HTMLElement | null
-        const imgElement = cellElement?.querySelector('img') as HTMLElement | null
+        const cellElement = document.querySelector(`[data-cell-key="${cellKey}"]`)
+        const imgElement = cellElement?.querySelector('img')
         if (cellElement && imgElement) {
-          GSAPAnimationHelpers.reset([cellElement, imgElement])
-          burstTargets.push(imgElement)
-          burstCellTargets.push(cellElement)
+          gsap.set([cellElement, imgElement], {
+            rotation: 0,
+            scale: 1,
+            x: 0,
+            y: 0,
+            opacity: 1
+          })
+          burstTargets.push(imgElement as HTMLElement)
+          burstCellTargets.push(cellElement as HTMLElement)
         }
       })
       
@@ -184,10 +216,8 @@ function SlotGameEngine({
           return
         }
         
-        GSAPAnimationHelpers.applyBurst(
-          burstCellTargets,
-          burstTargets,
-          () => {
+        const burstTimeline = gsap.timeline({
+          onComplete: () => {
             if (cascadeLockRef.current) {
               setRemovingCells((prev) => {
                 const updated = new Set(prev)
@@ -197,7 +227,19 @@ function SlotGameEngine({
             }
             resolve()
           }
-        )
+        })
+        
+        burstTimeline.to(burstCellTargets, {
+          scale: 0,
+          duration: 0.2,
+          ease: 'power1.out'
+        }, 0)
+        burstTimeline.to(burstTargets, {
+          scale: 0,
+          opacity: 0,
+          duration: 0.2,
+          ease: 'power1.out'
+        }, 0)
       })
       
       // Phase 2: Subtle delay after burst
@@ -285,17 +327,28 @@ function SlotGameEngine({
       
       const fallTargets: Array<{ element: HTMLElement, cellElement: HTMLElement | null, fromRow: number, toRow: number, isNew: boolean }> = []
       fallingMap.forEach((fallData, cellKey) => {
-        const imgElement = document.querySelector(`img[data-symbol-id="${fallData.symbolId}"]`) as HTMLElement | null
+        const imgElement = document.querySelector(`img[data-symbol-id="${fallData.symbolId}"]`)
         const cellElement = imgElement?.closest('[data-cell-key]') as HTMLElement | null
         if (imgElement) {
-          GSAPAnimationHelpers.reset(imgElement)
+          gsap.set(imgElement, {
+            rotation: 0,
+            scale: 1,
+            x: 0,
+            y: 0,
+            opacity: 1
+          })
           
           if (cellElement) {
-            GSAPAnimationHelpers.reset(cellElement)
+            gsap.set(cellElement, {
+              rotation: 0,
+              scale: 1,
+              x: 0,
+              y: 0,
+            })
           }
           
           fallTargets.push({
-            element: imgElement,
+            element: imgElement as HTMLElement,
             cellElement: cellElement,
             fromRow: fallData.fromRow,
             toRow: fallData.toRow,
@@ -342,12 +395,32 @@ function SlotGameEngine({
         await new Promise<void>((resolve) => {
           const gravityAnimations = gravityTargets.map(({ element, cellElement, fromRow, toRow }) => {
             const fallDistance = (fromRow - toRow) * 100
-            return GSAPAnimationHelpers.applyGravity(
-              element,
-              fallDistance,
-              cellElement || null,
-              finalCascadeSlowdown
-            )
+            const anims = []
+            if (cellElement) {
+              anims.push(gsap.fromTo(cellElement, 
+                { y: `${fallDistance}%`, x: 0, rotation: 0 },
+                { 
+                  y: '0%', 
+                  x: 0,
+                  rotation: 0,
+                  duration: 0.25 * finalCascadeSlowdown,
+                  ease: 'bounce.out',
+                  clearProps: 'transform'
+                }
+              ))
+            }
+            anims.push(gsap.fromTo(element, 
+              { y: `${fallDistance}%`, x: 0, rotation: 0 },
+              { 
+                y: '0%', 
+                x: 0,
+                rotation: 0,
+                duration: 0.25 * finalCascadeSlowdown,
+                ease: 'bounce.out',
+                clearProps: 'transform'
+              }
+            ))
+            return anims
           }).flat()
           
           const gravityTimeline = gsap.timeline({
@@ -389,12 +462,32 @@ function SlotGameEngine({
         await new Promise<void>((resolve) => {
           const spawnAnimations = spawnTargets.map(({ element, cellElement, fromRow, toRow }) => {
             const fallDistance = (fromRow - toRow) * 100
-            return GSAPAnimationHelpers.applySpawn(
-              element,
-              fallDistance,
-              cellElement || null,
-              finalCascadeSlowdown
-            )
+            const anims = []
+            if (cellElement) {
+              anims.push(gsap.fromTo(cellElement, 
+                { y: `${fallDistance}%`, x: 0, rotation: 0 },
+                { 
+                  y: '0%', 
+                  x: 0,
+                  rotation: 0,
+                  duration: 0.25 * finalCascadeSlowdown,
+                  ease: 'power2.in',
+                  clearProps: 'transform'
+                }
+              ))
+            }
+            anims.push(gsap.fromTo(element, 
+              { y: `${fallDistance}%`, x: 0, rotation: 0 },
+              { 
+                y: '0%', 
+                x: 0,
+                rotation: 0,
+                duration: 0.25 * finalCascadeSlowdown,
+                ease: 'power2.in',
+                clearProps: 'transform'
+              }
+            ))
+            return anims
           }).flat()
           
           const spawnTimeline = gsap.timeline({
@@ -542,11 +635,17 @@ function SlotGameEngine({
       for (let col = 0; col < theme.gridColumns; col++) {
         for (let row = 0; row < theme.gridRows; row++) {
           const cellKey = `${col}-${row}`
-          const cellElement = document.querySelector(`[data-cell-key="${cellKey}"]`) as HTMLElement | null
-          const imgElement = cellElement?.querySelector('img') as HTMLElement | null
+          const cellElement = document.querySelector(`[data-cell-key="${cellKey}"]`)
+          const imgElement = cellElement?.querySelector('img')
           if (cellElement && imgElement) {
             gsap.killTweensOf([cellElement, imgElement])
-            GSAPAnimationHelpers.reset([cellElement, imgElement])
+            gsap.set([cellElement, imgElement], {
+              scale: 1,
+              rotation: 0,
+              x: 0,
+              y: 0,
+              opacity: 1
+            })
           }
         }
       }
@@ -565,7 +664,13 @@ function SlotGameEngine({
           const cellElement = document.querySelector(`[data-cell-key="${cellKey}"]`)
           const imgElement = cellElement?.querySelector('img')
           if (imgElement) {
-            GSAPAnimationHelpers.reset(imgElement)
+            gsap.set(imgElement, {
+              rotation: 0,
+              scale: 1,
+              x: 0,
+              y: 0,
+              opacity: 1
+            })
           }
         }
       }
@@ -612,16 +717,7 @@ function SlotGameEngine({
     
     try {
       // Call backend API
-      let gameData
-      try {
-        gameData = await onSpin(bet)
-      } catch (apiError: any) {
-        // API call failed - stop animations and show error
-        await Promise.all(reelAnimations)
-        onSpinningChange(false)
-        onError?.(apiError?.response?.data?.message || apiError?.message || 'Failed to connect to game server. Please check your connection and try again.')
-        return
-      }
+      const gameData = await onSpin(bet)
       
       await Promise.all(reelAnimations)
       
@@ -635,9 +731,8 @@ function SlotGameEngine({
       } else {
         console.error('SlotGameEngine - Invalid reel format:', finalReels)
         onError?.('Invalid response from server. Please try again.')
-        formattedReels = Array(theme.gridColumns).fill(null).map(() => 
-          Array(theme.gridRows).fill(null).map(() => createSymbolEntity(getDefaultSymbolValue()))
-        )
+        // Fallback: still show a new random grid so the player sees a result
+        formattedReels = generateRandomReels()
       }
       
       setReels(formattedReels)
@@ -687,10 +782,15 @@ function SlotGameEngine({
           requestAnimationFrame(() => {
             uniquePositions.forEach((pos: any) => {
               const cellKey = `${pos.reel}-${pos.position}`
-              const cellElement = document.querySelector(`[data-cell-key="${cellKey}"]`) as HTMLElement | null
-              const imgElement = cellElement?.querySelector('img') as HTMLElement | null
+              const cellElement = document.querySelector(`[data-cell-key="${cellKey}"]`)
+              const imgElement = cellElement?.querySelector('img')
               if (cellElement && imgElement) {
-                GSAPAnimationHelpers.reset([cellElement, imgElement])
+                gsap.set([cellElement, imgElement], {
+                  scale: 1,
+                  rotation: 0,
+                  x: 0,
+                  y: 0
+                })
                 gsap.to(cellElement, {
                   scale: 1.05,
                   duration: 0.6,
@@ -718,6 +818,9 @@ function SlotGameEngine({
       }
     } catch (err: any) {
       setReelSpeeds(Array(theme.gridColumns).fill(0))
+      // On error, still show a new random grid so the user sees that a spin happened
+      setReels(generateRandomReels())
+      setWinningSymbols([])
       const errorMessage = err.response?.data?.message || err.message || 'Failed to play game'
       onError?.(errorMessage)
     } finally {
@@ -775,7 +878,7 @@ function SlotGameEngine({
     spinReels()
   }
   
-  // Responsive scale based on viewport width and height
+  // Responsive scale based on viewport width
   // Fixed logical grid size - animations use logical coordinates
   const logicalWidth = theme.gridWidth
   const logicalHeight = theme.gridHeight
@@ -786,41 +889,20 @@ function SlotGameEngine({
       if (typeof window === 'undefined') return
       
       const width = window.innerWidth
-      const height = window.innerHeight
       
-      // Calculate available space based on screen size
-      let availableWidth = width
-      let availableHeight = height
+      // Calculate available width (account for padding/margins, sidebar, etc.)
+      // Use a reasonable minimum available width estimate
+      const estimatedSidebarWidth = 300 // Approximate sidebar/controls width
+      const estimatedPadding = 80 // Approximate total padding/margins
+      const availableWidth = Math.max(width - estimatedSidebarWidth - estimatedPadding, logicalWidth)
       
-      // Account for different screen sizes
-      if (width < 640) {
-        // Mobile: full width minus minimal padding (sidebar is hidden)
-        availableWidth = width - 20 // Minimal padding for full-width game
-        availableHeight = height - 280 // Space for controls above/below
-      } else if (width < 768) {
-        // Small tablet: sidebar hidden, more width for game
-        availableWidth = width - 32
-        availableHeight = height - 250
-      } else if (width < 1024) {
-        // Tablet: sidebar may be visible
-        availableWidth = width - 100
-        availableHeight = height - 200
-      } else {
-        // Desktop: account for sidebar, banner, and padding
-        availableWidth = width - 400 // Sidebar + banner + padding
-        availableHeight = height - 150
-      }
+      // Calculate scale factor - ensure grid fits within available width
+      // Add some margin (20px) to prevent edge touching
+      const targetWidth = availableWidth - 40
+      let calculatedScale = Math.min(1, targetWidth / logicalWidth)
       
-      // Calculate scale based on both width and height
-      const scaleByWidth = (availableWidth - 40) / logicalWidth // 20px margin each side
-      const scaleByHeight = (availableHeight - 40) / logicalHeight // 20px margin top/bottom
-      
-      // Use the smaller scale to ensure grid fits both dimensions
-      let calculatedScale = Math.min(scaleByWidth, scaleByHeight, 1.0)
-      
-      // Set min/max scale constraints
-      // Minimum scale 0.3 for very small screens, max 1.0
-      calculatedScale = Math.max(0.3, Math.min(1.0, calculatedScale))
+      // Set min/max scale constraints (0.5 to 1.0)
+      calculatedScale = Math.max(0.5, Math.min(1.0, calculatedScale))
       
       setScale(calculatedScale)
     }
@@ -829,19 +911,20 @@ function SlotGameEngine({
     const handleResize = () => updateScale()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [logicalWidth, logicalHeight])
+  }, [logicalWidth])
   
   // Scaled display size
   const displayWidth = logicalWidth * scale
   const displayHeight = logicalHeight * scale
   
   return (
-    <div className="relative mx-auto flex items-center justify-center w-full" style={{ 
-      width: '100%',
-      maxWidth: '100%',
-      minHeight: `${displayHeight}px`,
-      height: 'auto',
-      padding: '10px'
+    <div className="relative mx-auto flex items-center justify-center" style={{ 
+      width: `${displayWidth}px`,
+      height: `${displayHeight}px`,
+      maxWidth: `${displayWidth}px`,
+      minWidth: `${displayWidth}px`,
+      maxHeight: `${displayHeight}px`,
+      minHeight: `${displayHeight}px`
     }}>
       <div 
         className="relative"
@@ -851,18 +934,23 @@ function SlotGameEngine({
           transform: `scale(${scale})`,
           transformOrigin: 'center center',
           position: 'relative',
-          margin: '0 auto'
+          left: '50%',
+          top: '50%',
+          marginLeft: `-${logicalWidth / 2}px`,
+          marginTop: `-${logicalHeight / 2}px`
         }}
       >
       {/* Reels Grid */}
-      <div className="relative rounded-lg sm:rounded-xl md:rounded-2xl p-2 sm:p-3 md:p-4 shadow-2xl flex-shrink-0 border-4 sm:border-6 md:border-8 border-white" style={{
+      <div className="relative rounded-xl md:rounded-2xl p-3 md:p-4 shadow-2xl flex-shrink-0" style={{
         background: 'linear-gradient(135deg, #FF6B9D 0%, #C44569 50%, #F8B500 100%)',
+        border: '8px solid #FFFFFF',
         boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 0 20px rgba(255,255,255,0.3), 0 0 40px rgba(255,182,193,0.5)',
         position: 'relative',
         overflow: 'visible',
         width: `${theme.gridWidth}px`,
         height: `${theme.gridHeight}px`,
-        margin: '0 auto',
+        marginTop: '0.5rem',
+        marginBottom: 0,
         boxSizing: 'border-box',
         flexShrink: 0,
         backgroundImage: `
@@ -870,7 +958,7 @@ function SlotGameEngine({
           linear-gradient(135deg, #FF6B9D 0%, #C44569 50%, #F8B500 100%)
         `
       }}>
-        <div className="grid grid-cols-6 grid-rows-5 gap-1 sm:gap-1.5 md:gap-2 relative z-10" style={{ 
+        <div className="grid grid-cols-6 grid-rows-5 gap-1.5 md:gap-2 relative z-10" style={{ 
           overflow: 'visible',
           padding: 0,
           margin: 0,
@@ -948,51 +1036,25 @@ function SlotGameEngine({
                       top: symbolValue === '⭐' ? '50%' : undefined,
                       position: symbolValue === '⭐' ? 'absolute' : 'relative',
                       display: 'block',
-                      visibility: 'visible',
-                      opacity: 1,
                       margin: 0,
                       padding: 0,
                       verticalAlign: 'middle'
                     }}
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
+                      const symbolImage = getSymbolImage(symbolValue);
                       const fallbackPath = '/icons/icon.png';
-                      const currentSrc = target.src || '';
                       
-                      // Only try fallback if we haven't already tried it
-                      if (!currentSrc.includes('icon.png') && !currentSrc.endsWith(fallbackPath)) {
-                        // Try fallback image - ensure it's visible
+                      if (target.src !== fallbackPath && target.src !== symbolImage) {
                         target.src = fallbackPath;
-                        target.style.display = 'block';
-                        target.style.visibility = 'visible';
-                        target.style.opacity = '1';
-                        target.style.filter = 'drop-shadow(0 1px 3px rgba(0,0,0,0.2))';
                       } else {
-                        // If fallback also failed, show symbol emoji as text fallback
-                        // Keep image visible but show emoji if image completely fails
                         target.style.display = 'none';
-                        const parent = target.parentElement;
-                        if (parent && !parent.querySelector('.symbol-fallback')) {
-                          const symbolFallback = document.createElement('div');
-                          symbolFallback.className = 'symbol-fallback absolute inset-0 flex items-center justify-center text-4xl md:text-5xl';
-                          symbolFallback.textContent = symbolValue;
-                          symbolFallback.style.zIndex = '10';
-                          parent.appendChild(symbolFallback);
-                        }
+                        target.style.visibility = 'hidden';
                       }
                     }}
                     onLoad={(e) => {
                       const target = e.target as HTMLImageElement;
-                      // Ensure image is fully visible when loaded
                       target.style.display = 'block';
-                      target.style.visibility = 'visible';
-                      target.style.opacity = '1';
-                      // Remove any fallback text if image loads successfully
-                      const parent = target.parentElement;
-                      const fallback = parent?.querySelector('.symbol-fallback');
-                      if (fallback) {
-                        fallback.remove();
-                      }
                     }}
                   />
                 </div>

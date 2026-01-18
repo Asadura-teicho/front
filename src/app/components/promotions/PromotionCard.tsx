@@ -24,34 +24,13 @@ export function PromotionCard({
 }: PromotionCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Only trigger if clicking directly on the card, not on the button
-    if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.card-content-area')) {
-      if (onDetails) {
-        onDetails();
-      }
-    }
-  };
-
   return (
     <div
-      className={`relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover-lift card-content-area ${
+      className={`relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover-lift ${
         isHovered ? 'scale-105' : 'scale-100'
       }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={handleCardClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          if (onDetails) {
-            onDetails();
-          }
-        }
-      }}
-      aria-label={`View ${title} promotion details`}
     >
       {/* Background Gradient */}
       <div className={`absolute inset-0 ${bgGradient}`}></div>
@@ -96,14 +75,9 @@ export function PromotionCard({
         </div>
 
         {/* Details Button */}
-        <div className="mt-2 sm:mt-3 pointer-events-auto">
+        <div className="mt-2 sm:mt-3">
           <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onDetails) {
-                onDetails();
-              }
-            }}
+            onClick={onDetails}
             className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white border border-white/30 font-bold text-[9px] sm:text-[10px] md:text-xs px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-full transition-all hover:scale-105"
           >
             📋 DETAYLAR

@@ -58,8 +58,8 @@ export function WithdrawPage({ onClose, onOpenDeposit, onOpenProfile, onOpenTran
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-8" style={{ opacity: 1 }}>
-      <div className="w-[80%] h-[90vh] bg-white rounded-lg shadow-2xl flex overflow-hidden z-[10000]" style={{ opacity: 1, backgroundColor: '#ffffff' }}>
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-8">
+      <div className="w-[80%] h-[90vh] bg-white rounded-lg shadow-2xl flex overflow-hidden">
         {/* Left Sidebar */}
         <div className="w-60 bg-[#e8e8e8] border-r border-gray-300 flex flex-col">
         {/* User Profile */}
@@ -321,5 +321,3 @@ export function WithdrawPage({ onClose, onOpenDeposit, onOpenProfile, onOpenTran
     </div>
   );
 }
-
-export default WithdrawPage;

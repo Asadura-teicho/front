@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Search, User, Menu, Globe, ChevronDown, Tv, Trophy, Grid3x3, Flame, Zap, Ticket, MonitorPlay, Gift, MoreHorizontal, Bell, MessageSquare, Coins, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -12,18 +11,7 @@ interface NavigationProps {
   onShowMessages?: () => void;
 }
 
-// Map page names to routes
-const pageRoutes: Record<string, string> = {
-  home: '/',
-  slots: '/slots',
-  sports: '/sports',
-  livecasino: '/livecasino',
-  tvgames: '/tvgames',
-  promotions: '/promotions',
-};
-
 export function Navigation({ onNavigate, onShowSignIn, onShowSignUp, onShowDeposit, onShowMessages }: NavigationProps = {}) {
-  const navigate = useNavigate();
   // ✅ All hooks MUST be inside this function
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
@@ -86,18 +74,12 @@ export function Navigation({ onNavigate, onShowSignIn, onShowSignUp, onShowDepos
     window.dispatchEvent(new Event('userDataUpdated'));
     if (onNavigate) {
       onNavigate('home');
-    } else {
-      navigate('/');
     }
   };
 
   const handleNavClick = (page: string) => {
     if (onNavigate) {
       onNavigate(page);
-    } else {
-      // Use react-router-dom navigation
-      const route = pageRoutes[page] || '/';
-      navigate(route);
     }
   };
 
@@ -108,7 +90,7 @@ export function Navigation({ onNavigate, onShowSignIn, onShowSignUp, onShowDepos
   const currentTime = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <nav className="bg-white shadow-md sticky top-0 z-50 relative">
+    <nav className="bg-white shadow-md sticky top-0 z-50">
       {/* Top Header Bar */}
       <div className="bg-white border-b border-gray-200" style={{ marginTop: 0 }}>
         <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -181,7 +163,7 @@ export function Navigation({ onNavigate, onShowSignIn, onShowSignUp, onShowDepos
                 <>
                   {/* Sign In Button */}
                   <Button 
-                    onClick={() => onShowSignIn ? onShowSignIn() : navigate('/signin')}
+                    onClick={onShowSignIn}
                     className="hidden sm:flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-md text-xs font-bold h-auto"
                   >
                     <span>SIGN IN</span>
@@ -189,7 +171,7 @@ export function Navigation({ onNavigate, onShowSignIn, onShowSignUp, onShowDepos
 
                   {/* Register Button */}
                   <Button 
-                    onClick={() => onShowSignUp ? onShowSignUp() : navigate('/signup')}
+                    onClick={onShowSignUp}
                     className="hidden sm:flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-md text-xs font-bold h-auto"
                   >
                     <span>REGISTER</span>
@@ -445,14 +427,14 @@ export function Navigation({ onNavigate, onShowSignIn, onShowSignUp, onShowDepos
               ) : (
                 <>
                   <Button 
-                    onClick={() => { onShowSignIn ? onShowSignIn() : navigate('/signin'); setMobileMenuOpen(false); }}
+                    onClick={onShowSignIn}
                     className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold"
                   >
                     <User className="w-4 h-4 mr-2" />
                     SIGN IN
                   </Button>
                   <Button 
-                    onClick={() => { onShowSignUp ? onShowSignUp() : navigate('/signup'); setMobileMenuOpen(false); }}
+                    onClick={onShowSignUp}
                     className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold"
                   >
                     REGISTER

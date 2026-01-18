@@ -1,19 +1,17 @@
 import { useState } from 'react';
 import { X, Calendar, ChevronDown } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from '../components/ui/button';
 import { authAPI } from '../../lib/api';
 
 interface SignUpProps {
-  onClose?: () => void;
-  onSwitchToSignIn?: () => void;
+  onClose: () => void;
+  onSwitchToSignIn: () => void;
   onNavigate?: (page: string) => void;
 }
 
 export function SignUp({ onClose, onSwitchToSignIn, onNavigate }: SignUpProps) {
   const { t } = useLanguage();
-  const navigate = useNavigate();
   const [step, setStep] = useState(1); // 1: Account Credentials, 2: Personal Info
 
   // Step 1 fields (Account Credentials)
@@ -131,15 +129,11 @@ export function SignUp({ onClose, onSwitchToSignIn, onNavigate }: SignUpProps) {
       }
       
       // Success - close modal and navigate
-      if (onClose) {
-        onClose();
-      }
+      onClose();
       if (redirectPath) {
         window.location.href = redirectPath;
-      } else if (onNavigate) {
-        onNavigate('home');
       } else {
-        navigate('/', { replace: true });
+      onNavigate?.('home');
       }
     } catch (err: any) {
       // Handle API errors
@@ -167,18 +161,16 @@ export function SignUp({ onClose, onSwitchToSignIn, onNavigate }: SignUpProps) {
   const genders = ['Male', 'Female', 'Other'];
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" style={{ opacity: 1 }}>
-      <div className="bg-gray-100 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto relative z-[10000]" style={{ opacity: 1, backgroundColor: '#f3f4f6' }}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-gray-100 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto relative">
         {/* Header */}
         <div className="bg-gray-100 p-6 pb-0 relative">
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="absolute top-6 right-6 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          )}
+          <button
+            onClick={onClose}
+            className="absolute top-6 right-6 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
           
           {/* Logo placeholder - you can replace with actual logo */}
           <div className="mb-4">
@@ -187,7 +179,7 @@ export function SignUp({ onClose, onSwitchToSignIn, onNavigate }: SignUpProps) {
 
           <div className="flex justify-end mb-4">
             <button
-              onClick={() => onSwitchToSignIn ? onSwitchToSignIn() : navigate('/signin')}
+              onClick={onSwitchToSignIn}
               className="text-sm font-semibold text-gray-700 underline hover:text-purple-600 transition-colors"
             >
               {t('auth.signIn').toUpperCase()}
@@ -528,4 +520,3 @@ export function SignUp({ onClose, onSwitchToSignIn, onNavigate }: SignUpProps) {
     </div>
   );
 }
-export default SignUp;

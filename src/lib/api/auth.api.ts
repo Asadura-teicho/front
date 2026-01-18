@@ -6,13 +6,10 @@ import api from "./index";
 
 export const authAPI = {
   login: (emailOrUsername: string, password: string) => {
-    // Backend expects email field (but email can be used as identifier)
-    // If user provides username, we need to check if backend supports it
-    // For now, send as email field (backend will handle validation)
-    const loginPayload = { 
-      email: emailOrUsername.trim().toLowerCase(), 
-      password 
-    };
+    // Backend accepts username or email - try username first
+    const loginPayload = emailOrUsername.includes('@') 
+      ? { email: emailOrUsername, password }
+      : { email: emailOrUsername, password }; // Backend might expect email field
     
     return api.post("/auth/login", loginPayload);
   },

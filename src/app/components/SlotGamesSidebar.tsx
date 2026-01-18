@@ -68,24 +68,10 @@ export function SlotGamesSidebar({
           {providersExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
         {providersExpanded && (
-          <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-500 scrollbar-track-gray-100">
+          <div className="space-y-2 max-h-64 overflow-y-auto">
             {providers.map((provider) => (
-              <label 
-                key={provider.name} 
-                className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (onProviderChange) {
-                    // Toggle provider selection or set as single selection
-                    if (selectedProvider === provider.name) {
-                      onProviderChange('Tümü');
-                    } else {
-                      onProviderChange(provider.name);
-                    }
-                  }
-                }}
-              >
-                <Checkbox checked={selectedProvider === provider.name} />
+              <label key={provider.name} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                <Checkbox />
                 <span className="text-sm text-gray-700 flex-1">{provider.name}</span>
                 <span className="text-xs text-gray-400">({provider.count})</span>
               </label>
@@ -104,34 +90,10 @@ export function SlotGamesSidebar({
           {featuresExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
         {featuresExpanded && (
-          <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-500 scrollbar-track-gray-100">
+          <div className="space-y-2">
             {features.map((feature) => (
-              <label 
-                key={feature.name} 
-                className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (onCategoryChange) {
-                    // Map feature to category
-                    const categoryMap: Record<string, string> = {
-                      'Jackpot': 'Jackpot',
-                      'Free Spins': 'Bonus Buy',
-                      'Megaways': 'Megaways'
-                    };
-                    const category = categoryMap[feature.name] || feature.name;
-                    if (selectedCategory === category) {
-                      onCategoryChange('Tümü');
-                    } else {
-                      onCategoryChange(category);
-                    }
-                  }
-                }}
-              >
-                <Checkbox checked={selectedCategory === feature.name || 
-                  (feature.name === 'Jackpot' && selectedCategory === 'Jackpot') ||
-                  (feature.name === 'Free Spins' && selectedCategory === 'Bonus Buy') ||
-                  (feature.name === 'Megaways' && selectedCategory === 'Megaways')
-                } />
+              <label key={feature.name} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                <Checkbox />
                 <span className="text-sm text-gray-700 flex-1">{feature.name}</span>
                 <span className="text-xs text-gray-400">({feature.count})</span>
               </label>
@@ -144,35 +106,20 @@ export function SlotGamesSidebar({
       <div>
         <h3 className="font-semibold text-gray-900 mb-3">Volatilite</h3>
         <div className="space-y-2">
-          <label className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
+          <label className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
             <Checkbox />
             <span className="text-sm text-gray-700">Düşük</span>
           </label>
-          <label className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
+          <label className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
             <Checkbox />
             <span className="text-sm text-gray-700">Orta</span>
           </label>
-          <label className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
+          <label className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
             <Checkbox />
             <span className="text-sm text-gray-700">Yüksek</span>
           </label>
         </div>
       </div>
-
-      {/* Clear Filters Button */}
-      {(selectedCategory !== 'Tümü' || selectedProvider !== 'Tümü') && (
-        <div className="pt-4 border-t border-gray-200">
-          <button
-            onClick={() => {
-              if (onCategoryChange) onCategoryChange('Tümü');
-              if (onProviderChange) onProviderChange('Tümü');
-            }}
-            className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-          >
-            Filtreleri Temizle
-          </button>
-        </div>
-      )}
     </aside>
   );
 }

@@ -55,41 +55,12 @@ export function CategoryCards() {
               <div 
                 key={index}
                 className="group relative rounded-xl sm:rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105"
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    // Navigate to category
-                  }
-                }}
-                aria-label={`Explore ${category.title}`}
               >
-                <div className="aspect-[3/4] relative overflow-hidden bg-gray-200">
+                <div className="aspect-[3/4] relative overflow-hidden">
                   <img 
                     src={category.image} 
                     alt={category.title}
                     className="w-full h-full object-cover"
-                    loading="lazy"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent && !parent.querySelector('.image-placeholder')) {
-                        const placeholder = document.createElement('div');
-                        placeholder.className = 'image-placeholder absolute inset-0';
-                        placeholder.style.background = `linear-gradient(135deg, ${category.gradient.includes('blue') ? '#2563eb' : category.gradient.includes('orange') ? '#ea580c' : category.gradient.includes('green') ? '#059669' : category.gradient.includes('yellow') ? '#eab308' : '#ec4899'} 0%, ${category.gradient.includes('blue') ? '#9333ea' : category.gradient.includes('orange') ? '#dc2626' : category.gradient.includes('green') ? '#14b8a6' : category.gradient.includes('yellow') ? '#f97316' : '#a855f7'} 100%)`;
-                        parent.appendChild(placeholder);
-                      }
-                    }}
-                    onLoad={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'block';
-                      const placeholder = target.parentElement?.querySelector('.image-placeholder');
-                      if (placeholder) {
-                        placeholder.remove();
-                      }
-                    }}
                   />
                   <div className={`absolute inset-0 bg-gradient-to-br ${category.gradient} mix-blend-multiply opacity-80`}></div>
                   
@@ -121,13 +92,8 @@ export function CategoryCards() {
                 </div>
 
                 {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                  <Button 
-                    className="bg-purple-600 hover:bg-purple-700 text-xs sm:text-sm pointer-events-auto"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                  >
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Button className="bg-purple-600 hover:bg-purple-700 text-xs sm:text-sm">
                     {t('games.playNow')}
                   </Button>
                 </div>

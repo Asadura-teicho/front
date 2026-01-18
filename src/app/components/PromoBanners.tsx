@@ -57,46 +57,17 @@ export function PromoBanners() {
               <div 
                 key={index}
                 className={`relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer group`}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    // Navigate to promotion details
-                  }
-                }}
-                aria-label={`View ${promo.title} promotion details`}
               >
-                <div className="aspect-[4/3] relative overflow-hidden bg-gray-200">
+                <div className="aspect-[4/3] relative overflow-hidden">
                   <img 
                     src={promo.image} 
                     alt={promo.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    loading="lazy"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent && !parent.querySelector('.image-placeholder')) {
-                        const placeholder = document.createElement('div');
-                        placeholder.className = 'image-placeholder absolute inset-0';
-                        placeholder.style.background = `linear-gradient(135deg, ${promo.gradient.includes('purple') ? '#9333ea' : promo.gradient.includes('blue') ? '#2563eb' : promo.gradient.includes('yellow') ? '#eab308' : '#059669'} 0%, ${promo.gradient.includes('purple') ? '#ec4899' : promo.gradient.includes('blue') ? '#06b6d4' : promo.gradient.includes('yellow') ? '#f97316' : '#10b981'} 100%)`;
-                        parent.appendChild(placeholder);
-                      }
-                    }}
-                    onLoad={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'block';
-                      const placeholder = target.parentElement?.querySelector('.image-placeholder');
-                      if (placeholder) {
-                        placeholder.remove();
-                      }
-                    }}
                   />
                   <div className={`absolute inset-0 bg-gradient-to-br ${promo.gradient} mix-blend-multiply opacity-80`}></div>
                   
                   {/* Content */}
-                  <div className="absolute inset-0 p-4 sm:p-6 flex flex-col justify-between text-white pointer-events-none">
+                  <div className="absolute inset-0 p-4 sm:p-6 flex flex-col justify-between text-white">
                     {/* Icon */}
                     <div className="flex justify-end">
                       <div className="bg-white/20 backdrop-blur-sm rounded-full p-2 sm:p-3">
@@ -118,7 +89,7 @@ export function PromoBanners() {
                 </div>
 
                 {/* Hover Effect */}
-                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <span className="text-white font-bold text-sm sm:text-lg">{t('promo.seeDetails')}</span>
                 </div>
               </div>

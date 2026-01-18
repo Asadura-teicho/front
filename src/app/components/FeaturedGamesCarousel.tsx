@@ -2,38 +2,8 @@ import { Button } from './ui/button';
 import { Star } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
-interface FeaturedGamesCarouselProps {
-  onGameClick?: (gameId: string) => void;
-  onNavigate?: (page: string) => void;
-}
-
-export function FeaturedGamesCarousel({ onGameClick, onNavigate }: FeaturedGamesCarouselProps = {}) {
+export function FeaturedGamesCarousel() {
   const { t } = useLanguage();
-
-  // Map game titles to game IDs
-  const getGameId = (title: string): string | null => {
-    const gameMap: Record<string, string> = {
-      'Sweet Bonanza 1000': 'sweet-bonanza',
-      'Sweet Bonanza': 'sweet-bonanza',
-      'Sugar Rush': 'sweet-bonanza', // Map to available game
-      'Starlight Princess': 'sweet-bonanza', // Map to available game
-      'Gates of Gatot Kaca': 'gates-of-olympus',
-      'Gates of Olympus': 'gates-of-olympus',
-    };
-    return gameMap[title] || null;
-  };
-
-  const handleGameClick = (gameTitle: string) => {
-    const gameId = getGameId(gameTitle);
-    if (gameId && onGameClick) {
-      onGameClick(gameId);
-    } else {
-      // If game not available, navigate to slots page
-      if (onNavigate) {
-        onNavigate('slots');
-      }
-    }
-  };
 
   const featuredGames = [
     {
@@ -88,17 +58,7 @@ export function FeaturedGamesCarousel({ onGameClick, onNavigate }: FeaturedGames
           {featuredGames.map((game, index) => (
             <div 
               key={index}
-              onClick={() => handleGameClick(game.title)}
               className="group relative rounded-xl sm:rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105"
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleGameClick(game.title);
-                }
-              }}
-              aria-label={`Play ${game.title}`}
             >
               <div className="aspect-[3/4] relative overflow-hidden">
                 <img 
@@ -125,14 +85,7 @@ export function FeaturedGamesCarousel({ onGameClick, onNavigate }: FeaturedGames
                         <p className="text-xs text-white/70">Jackpot</p>
                         <p className="text-yellow-400 font-bold text-sm sm:text-lg">{game.jackpot}</p>
                       </div>
-                      <Button 
-                        size="sm" 
-                        className="bg-purple-600 hover:bg-purple-700 text-xs"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleGameClick(game.title);
-                        }}
-                      >
+                      <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-xs">
                         {t('games.play')}
                       </Button>
                     </div>
@@ -141,8 +94,8 @@ export function FeaturedGamesCarousel({ onGameClick, onNavigate }: FeaturedGames
               </div>
 
               {/* Hover overlay with play button */}
-              <div className="absolute inset-0 bg-gradient-to-t from-purple-900/90 to-purple-600/90 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                <div className="text-center space-y-3 sm:space-y-4 pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-t from-purple-900/90 to-purple-600/90 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="text-center space-y-3 sm:space-y-4">
                   <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center mx-auto">
                     <div className="w-0 h-0 border-l-[12px] sm:border-l-[16px] border-l-purple-600 border-t-[8px] sm:border-t-[10px] border-t-transparent border-b-[8px] sm:border-b-[10px] border-b-transparent ml-1"></div>
                   </div>
