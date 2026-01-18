@@ -321,3 +321,5 @@ export function WithdrawPage({ onClose, onOpenDeposit, onOpenProfile, onOpenTran
     </div>
   );
 }
+
+export default WithdrawPage;

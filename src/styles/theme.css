@@ -234,19 +234,7 @@
   }
 }
 
-.animate-fade-in {
-  animation: fade-in 0.3s ease-out;
-}
-
-.animate-scale-in {
-  animation: scale-in 0.3s ease-out;
-}
-
-.animate-fade-in-up {
-  animation: fade-in-up 0.4s ease-out;
-  animation-fill-mode: both;
-}
-
+/* Animation classes are defined in animations.css - avoid duplicates */
 .animate-shake {
-  animation: shake 0.3s ease-in-out;
+  animation: shake 0.3s ease-in-out both;
 }

@@ -7,11 +7,8 @@
 /* Base mobile optimizations */
 @media (max-width: 640px) {
   /* Improve touch targets - minimum 44x44px */
-  button,
-  a,
-  input[type="button"],
-  input[type="submit"],
-  [role="button"] {
+  /* Exclude navbar buttons from these rules to prevent layout issues */
+  .touch-target-button {
     min-height: 44px;
     min-width: 44px;
     padding: 0.75rem 1rem;
@@ -25,9 +22,9 @@
     font-size: 16px; /* Prevent iOS zoom on input focus */
   }
 
-  /* Prevent horizontal scroll */
-  * {
-    max-width: 100%;
+  /* Prevent horizontal scroll - exclude fixed/sticky elements */
+  body, main, section, article, div:not([class*="fixed"]):not([class*="sticky"]):not([class*="absolute"]) {
+    max-width: 100vw;
     box-sizing: border-box;
   }
 
@@ -60,8 +57,8 @@
   }
 
   /* Better modal/modal overlay on mobile */
-  [class*="modal"],
-  [class*="overlay"] {
+  .modal-container,
+  .overlay-container {
     padding: 1rem;
     max-width: 100vw;
     max-height: 100vh;
@@ -189,10 +186,8 @@
     gap: 1rem;
   }
 
-  /* Better touch targets on tablet */
-  button,
-  a,
-  [role="button"] {
+  /* Better touch targets on tablet - use specific class */
+  .touch-target-button {
     min-height: 44px;
     padding: 0.875rem 1.25rem;
   }
@@ -254,19 +249,7 @@
   }
 }
 
-/* Fade-in animation for modals */
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.2s ease-in-out;
-}
+/* Fade-in animation for modals - uses definition from animations.css */
 
 /* Slide-in animation for sidebars */
 @keyframes slide-in-right {

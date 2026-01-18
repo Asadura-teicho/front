@@ -507,3 +507,4 @@ export function MyProfilePage({ onClose, onOpenDeposit, onOpenWithdraw, onOpenTr
     </div>
   );
 }
+export default MyProfilePage;

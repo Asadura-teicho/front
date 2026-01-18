@@ -379,3 +379,5 @@ export function TransactionHistoryPage({ onClose, onOpenDeposit, onOpenWithdraw,
     </div>
   );
 }
+
+export default TransactionHistoryPage;

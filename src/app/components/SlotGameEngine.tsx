@@ -165,12 +165,12 @@ function SlotGameEngine({
       const burstTargets: HTMLElement[] = []
       const burstCellTargets: HTMLElement[] = []
       cellKeys.forEach((cellKey) => {
-        const cellElement = document.querySelector(`[data-cell-key="${cellKey}"]`)
-        const imgElement = cellElement?.querySelector('img')
+        const cellElement = document.querySelector(`[data-cell-key="${cellKey}"]`) as HTMLElement | null
+        const imgElement = cellElement?.querySelector('img') as HTMLElement | null
         if (cellElement && imgElement) {
           GSAPAnimationHelpers.reset([cellElement, imgElement])
-          burstTargets.push(imgElement as HTMLElement)
-          burstCellTargets.push(cellElement as HTMLElement)
+          burstTargets.push(imgElement)
+          burstCellTargets.push(cellElement)
         }
       })
       
@@ -285,7 +285,7 @@ function SlotGameEngine({
       
       const fallTargets: Array<{ element: HTMLElement, cellElement: HTMLElement | null, fromRow: number, toRow: number, isNew: boolean }> = []
       fallingMap.forEach((fallData, cellKey) => {
-        const imgElement = document.querySelector(`img[data-symbol-id="${fallData.symbolId}"]`)
+        const imgElement = document.querySelector(`img[data-symbol-id="${fallData.symbolId}"]`) as HTMLElement | null
         const cellElement = imgElement?.closest('[data-cell-key]') as HTMLElement | null
         if (imgElement) {
           GSAPAnimationHelpers.reset(imgElement)
@@ -295,7 +295,7 @@ function SlotGameEngine({
           }
           
           fallTargets.push({
-            element: imgElement as HTMLElement,
+            element: imgElement,
             cellElement: cellElement,
             fromRow: fallData.fromRow,
             toRow: fallData.toRow,
@@ -542,8 +542,8 @@ function SlotGameEngine({
       for (let col = 0; col < theme.gridColumns; col++) {
         for (let row = 0; row < theme.gridRows; row++) {
           const cellKey = `${col}-${row}`
-          const cellElement = document.querySelector(`[data-cell-key="${cellKey}"]`)
-          const imgElement = cellElement?.querySelector('img')
+          const cellElement = document.querySelector(`[data-cell-key="${cellKey}"]`) as HTMLElement | null
+          const imgElement = cellElement?.querySelector('img') as HTMLElement | null
           if (cellElement && imgElement) {
             gsap.killTweensOf([cellElement, imgElement])
             GSAPAnimationHelpers.reset([cellElement, imgElement])
@@ -687,8 +687,8 @@ function SlotGameEngine({
           requestAnimationFrame(() => {
             uniquePositions.forEach((pos: any) => {
               const cellKey = `${pos.reel}-${pos.position}`
-              const cellElement = document.querySelector(`[data-cell-key="${cellKey}"]`)
-              const imgElement = cellElement?.querySelector('img')
+              const cellElement = document.querySelector(`[data-cell-key="${cellKey}"]`) as HTMLElement | null
+              const imgElement = cellElement?.querySelector('img') as HTMLElement | null
               if (cellElement && imgElement) {
                 GSAPAnimationHelpers.reset([cellElement, imgElement])
                 gsap.to(cellElement, {
@@ -794,11 +794,15 @@ function SlotGameEngine({
       
       // Account for different screen sizes
       if (width < 640) {
-        // Mobile: account for controls and padding
-        availableWidth = width - 40 // 20px padding on each side
-        availableHeight = height - 300 // Space for controls above/below
+        // Mobile: full width minus minimal padding (sidebar is hidden)
+        availableWidth = width - 20 // Minimal padding for full-width game
+        availableHeight = height - 280 // Space for controls above/below
+      } else if (width < 768) {
+        // Small tablet: sidebar hidden, more width for game
+        availableWidth = width - 32
+        availableHeight = height - 250
       } else if (width < 1024) {
-        // Tablet: account for sidebars and padding
+        // Tablet: sidebar may be visible
         availableWidth = width - 100
         availableHeight = height - 200
       } else {

@@ -358,3 +358,4 @@ export function DepositPage({ onClose, onOpenWithdraw, onOpenProfile, onOpenTran
     </div>
   );
 }
+export default DepositPage;

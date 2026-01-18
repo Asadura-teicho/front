@@ -1,4 +1,535 @@
+// import { useState, useEffect, useRef } from 'react'
+// import { authAPI } from '../../lib/api/auth.api'
+// import sweetBonanzaAPI from '../../lib/api/sweetBonanza.api'
+// import { updateUserData } from '../../lib/utils/auth'
+// import SlotGameEngine, { SlotGameTheme } from '../components/SlotGameEngine'
+// import { GameSelector } from '../components/GameSelector'
+
+// interface SweetBonanzaPageProps {
+//   onClose?: () => void
+//   onSwitchGame?: (gameId?: string) => void
+// }
+
+// function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {}) {
+  
+//   const [user, setUser] = useState<any>(null)
+//   const [balance, setBalance] = useState(() => {
+//     // Initialize balance from localStorage if available
+//     try {
+//       const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+//       return storedUser?.balance || 0
+//     } catch {
+//       return 0
+//     }
+//   })
+//   const [loading, setLoading] = useState(true)
+//   const [gameLoading, setGameLoading] = useState(true)
+//   const [loadingProgress, setLoadingProgress] = useState(0)
+//   const [logoLoaded, setLogoLoaded] = useState(false)
+//   const [bgImageLoaded, setBgImageLoaded] = useState(false)
+//   const [error, setError] = useState('')
+//   const [success, setSuccess] = useState('')
+//   const [betAmount, setBetAmount] = useState('10')
+//   const [spinning, setSpinning] = useState(false)
+//   const [selectedOutcome, setSelectedOutcome] = useState(null) // 'win' or 'loss'
+//   const [gameState, setGameState] = useState('betting') // 'betting', 'spinning', 'result'
+//   const [timer, setTimer] = useState(10)
+//   const [spinTrigger, setSpinTrigger] = useState(0) // Trigger for external spin (Buy Free Spins, etc.)
+
+//   // Theme configuration for Sweet Bonanza
+//   const sweetBonanzaTheme: SlotGameTheme = {
+//     themeName: 'Sweet Bonanza',
+//     backgroundImage: '/sweet-bonanza-bg.jpg',
+//     symbolImages: {
+//       '🍇': '/icons/icon.png',      // Grapes (weight: 30 - most common)
+//       '🍊': '/icons/icon1.png',     // Orange (weight: 25)
+//       '🍋': '/icons/icon7.png',     // Lemon (weight: 20)
+//       '🍉': '/icons/icon3.png',     // Watermelon (weight: 15)
+//       '🍌': '/icons/icon4.png',     // Banana (weight: 12)
+//       '🍎': '/icons/icon5.png',     // Apple (weight: 8)
+//       '🍓': '/icons/icon6.png',     // Strawberry (weight: 5)
+//       '⭐': '/icons/icon2.png',     // Star (weight: 3)
+//       '💎': '/icons/bomb.png',      // Diamond/Lollipop (weight: 2 - least common)
+//     },
+//     symbolWeights: {
+//       '🍇': 30, '🍊': 25, '🍋': 20, '🍉': 15, '🍌': 12,
+//       '🍎': 8, '🍓': 5, '⭐': 3, '💎': 2
+//     },
+//     defaultSymbol: '🍇',
+//     gridColumns: 6,
+//     gridRows: 5,
+//     gridWidth: 560,
+//     gridHeight: 466.67
+//   }
+
+//   // Original emoji symbols for reference (keeping for weight mapping)
+//   const symbolKeys = ['🍇', '🍊', '🍋', '🍉', '🍌', '🍎', '🍓', '⭐', '💎']
+
+//   // Game state - winAmount and gameHistory kept for display purposes
+//   const [winAmount, setWinAmount] = useState(0)
+//   const [gameHistory, setGameHistory] = useState<any[]>([])
+//   const [autoSpin, setAutoSpin] = useState(false)
+//   const [autoSpinCount, setAutoSpinCount] = useState(0)
+//   const [isWinning, setIsWinning] = useState(false)
+//   const bgMusicRef = useRef<HTMLAudioElement | null>(null)
+//   const winSoundRef = useRef<HTMLAudioElement | null>(null)
+//   const lossSoundRef = useRef<HTMLAudioElement | null>(null)
+//   const spinSoundRef = useRef<HTMLAudioElement | null>(null)
+//   const [musicEnabled, setMusicEnabled] = useState(true)
+//   const [soundEnabled, setSoundEnabled] = useState(true)
+//   const [showGameRules, setShowGameRules] = useState(false)
+//   const [doNotShowAgain, setDoNotShowAgain] = useState(false)
+//   const [showGamesSidebar, setShowGamesSidebar] = useState(false)
+//   const [showBetPopup, setShowBetPopup] = useState(false)
+//   const [thunderCount, setThunderCount] = useState(5) // Track remaining spins (starts at 5, game ends after 5 spins)
+
+//   const quickBetAmounts = ['10', '50', '100', '500', '1000']
+
+//   // Helper function to create beep sound using Web Audio API
+//   const createBeepSound = (frequency, duration, type = 'sine') => {
+//     if (!soundEnabled || typeof window === 'undefined' || !window.AudioContext && !window.webkitAudioContext) {
+//       return
+//     }
+    
+//     try {
+//       const AudioContext = window.AudioContext || window.webkitAudioContext
+//       const audioContext = new AudioContext()
+//       const oscillator = audioContext.createOscillator()
+//       const gainNode = audioContext.createGain()
+      
+//       oscillator.connect(gainNode)
+//       gainNode.connect(audioContext.destination)
+      
+//       oscillator.frequency.value = frequency
+//       oscillator.type = type
+      
+//       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+//       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration)
+      
+//       oscillator.start(audioContext.currentTime)
+//       oscillator.stop(audioContext.currentTime + duration)
+//     } catch (error) {
+//       console.error('Error creating beep sound:', error)
+//     }
+//   }
+
+//   // Helper function to play sound
+//   const playSound = (soundRef, volume = 0.7, useBeep = false, beepFreq = 800) => {
+//     if (!soundEnabled) return
+    
+//     // If beep requested or no sound ref, use beep sound
+//     if (useBeep || !soundRef?.current) {
+//       createBeepSound(beepFreq, 0.3)
+//       return
+//     }
+    
+//     const audio = soundRef.current
+//     if (!audio) {
+//       createBeepSound(beepFreq, 0.3)
+//       return
+//     }
+    
+//     // Check if audio has error state
+//     if (audio.error) {
+//       // Audio file has error - fallback to beep
+//       createBeepSound(beepFreq, 0.3)
+//       return
+//     }
+    
+//     try {
+//       // Reset audio to start
+//       audio.currentTime = 0
+//       audio.volume = volume
+      
+//       // Try to play - handle errors gracefully
+//       const playPromise = audio.play()
+//       if (playPromise !== undefined) {
+//         playPromise.catch(() => {
+//           // Any play error - fallback to beep sound silently
+//           createBeepSound(beepFreq, 0.3)
+//         })
+//       }
+//     } catch (error: any) {
+//       // Catch any other errors and fallback silently
+//       createBeepSound(beepFreq, 0.3)
+//     }
+//   }
+
+//   // Initialize audio
+//   useEffect(() => {
+//     // Create audio elements for sounds
+//     try {
+//       // Background music
+//       bgMusicRef.current = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3')
+//       bgMusicRef.current.loop = true
+//       bgMusicRef.current.volume = 0.3
+//       bgMusicRef.current.preload = 'auto'
+      
+//       // Try to load audio files from public folder, fallback to beep sounds
+//       // Use lazy loading to prevent 416 errors with empty/missing files
+//       try {
+//         // Win sound - create but don't load immediately
+//         const winAudio = new Audio('/sweet-bonanza-win.mp3')
+//         winAudio.volume = 0.7
+//         winAudio.preload = 'none'
+//         // Suppress errors - will fallback to beep sound
+//         winAudio.addEventListener('error', () => {
+//           // Audio file failed to load - set to null to use beep fallback
+//           winSoundRef.current = null
+//         }, { once: true })
+//         winSoundRef.current = winAudio
+//       } catch (e) {
+//         winSoundRef.current = null
+//       }
+      
+//       try {
+//         // Loss sound - create but don't load immediately
+//         const lossAudio = new Audio('/sweet-bonanza-loss.mp3')
+//         lossAudio.volume = 0.7
+//         lossAudio.preload = 'none'
+//         // Suppress errors - will fallback to beep sound
+//         lossAudio.addEventListener('error', () => {
+//           // Audio file failed to load - set to null to use beep fallback
+//           lossSoundRef.current = null
+//         }, { once: true })
+//         lossSoundRef.current = lossAudio
+//       } catch (e) {
+//         lossSoundRef.current = null
+//       }
+      
+//       try {
+//         // Spin sound - create but don't load immediately
+//         const spinAudio = new Audio('/sweet-bonanza-spin.mp3')
+//         spinAudio.volume = 0.5
+//         spinAudio.preload = 'none'
+//         // Suppress errors - will fallback to beep sound
+//         spinAudio.addEventListener('error', () => {
+//           // Audio file failed to load - set to null to use beep fallback
+//           spinSoundRef.current = null
+//         }, { once: true })
+//         spinSoundRef.current = spinAudio
+//       } catch (e) {
+//         spinSoundRef.current = null
+//       }
+
+//       // Start background music if enabled
+//       if (musicEnabled && bgMusicRef.current) {
+//         bgMusicRef.current.play().catch(() => {
+//           // Autoplay blocked, ignore silently
+//         })
+//       }
+//     } catch (error) {
+//       console.error('Error initializing audio:', error)
+//     }
+
+//     return () => {
+//       // Cleanup audio on unmount
+//       if (bgMusicRef.current) {
+//         bgMusicRef.current.pause()
+//         bgMusicRef.current = null
+//       }
+//       if (winSoundRef.current) {
+//         winSoundRef.current.pause()
+//         winSoundRef.current = null
+//       }
+//       if (lossSoundRef.current) {
+//         lossSoundRef.current.pause()
+//         lossSoundRef.current = null
+//       }
+//       if (spinSoundRef.current) {
+//         spinSoundRef.current.pause()
+//         spinSoundRef.current = null
+//       }
+//     }
+//   }, [])
+
+//   // Handle music toggle
+//   useEffect(() => {
+//     if (bgMusicRef.current) {
+//       if (musicEnabled) {
+//         bgMusicRef.current.play().catch(() => {})
+//       } else {
+//         bgMusicRef.current.pause()
+//       }
+//     }
+//   }, [musicEnabled])
+
+//   // Preload background images
+//   useEffect(() => {
+//     const bgImage = new Image()
+//     bgImage.onload = () => setBgImageLoaded(true)
+//     bgImage.onerror = () => {
+//       console.warn('Background image failed to load, continuing anyway')
+//       setBgImageLoaded(true) // Continue even if image fails
+//     }
+//     bgImage.src = sweetBonanzaTheme.backgroundImage || '/sweet-bonanza-bg.jpg'
+    
+//     // Set timeout to ensure loading doesn't get stuck
+//     const timeout = setTimeout(() => {
+//       setBgImageLoaded(true)
+//     }, 3000)
+    
+//     return () => clearTimeout(timeout)
+//   }, [])
+
+//   // Loading screen progress animation - only start after logo and bg image are loaded, and user data is loaded
+//   useEffect(() => {
+//     // Immediately set loading to false to allow game to open quickly
+//     setLoading(false)
+    
+//     // Auto-set images as loaded after a short delay if they haven't loaded (ensures game always opens)
+//     const imageTimeout = setTimeout(() => {
+//       setLogoLoaded(true)
+//       setBgImageLoaded(true)
+//     }, 1000) // Reduced to 1 second for faster loading
+
+//     // Safety timeout - if loading takes too long, force completion (ensures game always opens)
+//     const safetyTimeout = setTimeout(() => {
+//       setGameLoading(false)
+//       setLoading(false)
+//       setLogoLoaded(true)
+//       setBgImageLoaded(true)
+//       setLoadingProgress(100)
+//     }, 2000) // 2 second timeout - game should open quickly
+    
+//     return () => {
+//       clearTimeout(imageTimeout)
+//       clearTimeout(safetyTimeout)
+//     }
+//   }, []) // Empty dependency array - only run once on mount
+
+//   // Progress bar animation - separate effect (runs independently)
+//   useEffect(() => {
+//     if (gameLoading && logoLoaded && bgImageLoaded && !loading && loadingProgress < 100) {
+//       const interval = setInterval(() => {
+//         setLoadingProgress(prev => {
+//           if (prev >= 100) {
+//             clearInterval(interval)
+//             setTimeout(() => {
+//               setGameLoading(false)
+//             }, 200)
+//             return 100
+//           }
+//           return prev + 3 // Faster progress
+//         })
+//       }, 50)
+//       return () => clearInterval(interval)
+//     }
+//   }, [gameLoading, logoLoaded, bgImageLoaded, loading, loadingProgress])
+
+//   useEffect(() => {
+//     // Try to get balance from localStorage first (faster initial load)
+//     try {
+//       const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+//       if (storedUser?.balance !== undefined && storedUser.balance !== null) {
+//         const initialBalance = parseFloat(storedUser.balance) || 0
+//         setBalance(initialBalance)
+//         setUser(storedUser)
+//         setLoading(false) // Set loading to false immediately if we have localStorage data
+//       } else {
+//         // No stored user, but still set loading to false after a short delay
+//         setLoading(false)
+//       }
+//     } catch (e) {
+//       // Ignore localStorage errors, but still set loading to false
+//       setLoading(false)
+//     }
+    
+//     // Then fetch fresh data from server (don't block on this)
+//     fetchUserData()
+    
+//     // Listen for balance updates from other components
+//     const handleUserDataUpdate = (event) => {
+//       if (event.detail?.balance !== undefined && event.detail.balance !== null) {
+//         const newBalance = parseFloat(event.detail.balance) || 0
+//         setBalance(newBalance)
+//         setUser(event.detail)
+//       }
+//     }
+    
+//     window.addEventListener('userDataUpdated', handleUserDataUpdate)
+    
+//     // Also poll for balance updates periodically (every 10 seconds - reduced frequency)
+//     const balanceInterval = setInterval(() => {
+//       // Only fetch if not loading and component is still mounted
+//       if (!loading) {
+//         fetchUserData()
+//       }
+//     }, 10000) // Increased to 10 seconds to reduce load
+    
+//     return () => {
+//       window.removeEventListener('userDataUpdated', handleUserDataUpdate)
+//       clearInterval(balanceInterval)
+//     }
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, [])
+
+//   const fetchUserData = async () => {
+//     try {
+//       // Always ensure loading is false (don't block game)
+//       setLoading(false)
+      
+//       // Check if user is authenticated
+//       const token = localStorage.getItem('token')
+//       if (!token) {
+//         // Don't block game from opening, just use localStorage data
+//         try {
+//           const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+//           if (storedUser?.balance !== undefined) {
+//             setBalance(storedUser.balance)
+//             setUser(storedUser)
+//             return
+//           }
+//         } catch (e) {
+//           // Continue to try API call
+//         }
+//         return
+//       }
+
+//       const response = await authAPI.me()
+      
+//       // Response data extraction (no logging in production)
+      
+//       // Handle different response structures
+//       // Backend returns user directly, axios wraps it in response.data
+//       const userData = response?.data || response || null
+      
+//       if (userData) {
+//         setUser(userData)
+//         // Get balance - check multiple possible locations
+//         const userBalance = userData.balance !== undefined ? userData.balance : 
+//                           (userData.user?.balance !== undefined ? userData.user.balance : 0)
+        
+//         setBalance(userBalance)
+        
+//         // Update localStorage to sync with navbar
+//         updateUserData(userData)
+        
+//       } else {
+//         // Try to get balance from localStorage as fallback
+//         try {
+//           const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+//           if (storedUser?.balance !== undefined) {
+//             setBalance(storedUser.balance)
+//             setUser(storedUser)
+//           } else {
+//             setError('Unable to load user data. Please try again.')
+//           }
+//         } catch (e) {
+//           // Ignore localStorage errors
+//           setError('Unable to load user data. Please try again.')
+//         }
+//       }
+//     } catch (err: any) {
+//       console.error('Sweet Bonanza - API Error:', err)
+//       if (import.meta.env.DEV) {
+//         console.error('Sweet Bonanza - Error fetching user data:', err)
+//         console.error('Sweet Bonanza - Error response:', err.response)
+//       }
+      
+//       // Handle authentication errors
+//       if (err.response?.status === 401) {
+//         setError('Session expired. Please log in again.')
+//         localStorage.removeItem('token')
+//         localStorage.removeItem('user')
+//         setTimeout(() => {
+//           if (onClose) {
+//             onClose()
+//           }
+//         }, 2000)
+//       }
+      
+//       // Try to get balance from localStorage as fallback
+//       try {
+//         const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+//         if (storedUser?.balance !== undefined) {
+//           setBalance(storedUser.balance)
+//           setUser(storedUser)
+//         } else {
+//           setError('Unable to load user data. Please try again.')
+//         }
+//       } catch (e) {
+//         // Ignore localStorage errors - game should still open
+//       }
+//       // Always set loading to false even on error
+//       setLoading(false)
+//     } finally {
+//       // Always ensure loading is false in finally block
+//       setLoading(false)
+//       setLoading(false)
+//     }
+//   }
+
+//   // NOTE: All game logic (spinReels, processCascadeAnimation, etc.) has been moved to SlotGameEngine component
+//   // This component now only handles page-level UI (balance display, title, banners, sidebar, etc.)
+
+//   // Quick bet handler
+//   const handleQuickBet = (amount) => {
+//     setBetAmount(amount)
+//   }
+
+//   // Reset thunder count when autoplay finishes
+//   useEffect(() => {
+//     if (autoSpinCount === 0 && autoSpin) {
+//       setThunderCount(5) // Reset to 5 for next game
+//     }
+//   }, [autoSpinCount, autoSpin])
+
+//   // All game logic (spin, cascade animations, win calculations) has been moved to SlotGameEngine component
+//   // This component now only handles page-level UI (balance display, title, banners, sidebar, etc.)
+
+//   // Loading Screen with Pragmatic Play Logo - Show this for all loading states
+//   if (loading || gameLoading) {
+//     return (
+//       <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
+//           <div className="flex flex-col items-center justify-center">
+//             {/* PRAGMATIC PLAY Logo Image - Display first */}
+//             <div className="mb-8 text-center">
+//               <img 
+//                 src="/pragmaticplay.jpeg" 
+//                 alt="Pragmatic Play" 
+//                 className="w-48 md:w-64 h-auto mx-auto"
+//                 style={{ maxWidth: '300px' }}
+//                 onLoad={() => setLogoLoaded(true)}
+//                 onError={() => setLogoLoaded(true)} // Continue even if logo fails
+//               />
+//             </div>
+            
+//             {/* Loading Bar - Only show after logo and bg image are loaded, and user data is loaded */}
+//             {logoLoaded && bgImageLoaded && !loading && (
+//               <div className="w-64 md:w-80 h-1 bg-gray-700 rounded-full overflow-hidden">
+//                 <div 
+//                   className="h-full bg-orange-500 transition-all duration-300 ease-out"
+//                   style={{ 
+//                     width: `${loadingProgress}%`,
+//                     boxShadow: '0 0 10px rgba(255, 165, 0, 0.8)'
+//                   }}
+//                 ></div>
+//               </div>
+//             )}
+//             {/* Show loading indicator while user data is being fetched */}
+//             {loading && (
+//               <div className="w-64 md:w-80 h-1 bg-gray-700 rounded-full overflow-hidden">
+//                 <div 
+//                   className="h-full bg-orange-500 transition-all duration-300 ease-out animate-pulse"
+//                   style={{ 
+//                     width: '30%',
+//                     boxShadow: '0 0 10px rgba(255, 165, 0, 0.8)'
+//                   }}
+//                 ></div>
+//               </div>
+//             )}
+//           </div>
+//         </div>
+//     )
+//   }
+
+
+
+
+
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { authAPI } from '../../lib/api/auth.api'
 import sweetBonanzaAPI from '../../lib/api/sweetBonanza.api'
 import { updateUserData } from '../../lib/utils/auth'
@@ -6,15 +537,14 @@ import SlotGameEngine, { SlotGameTheme } from '../components/SlotGameEngine'
 import { GameSelector } from '../components/GameSelector'
 
 interface SweetBonanzaPageProps {
-  onClose?: () => void
   onSwitchGame?: (gameId?: string) => void
 }
 
-function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {}) {
-  
+function SweetBonanzaPage({ onSwitchGame }: SweetBonanzaPageProps = {}) {
+  const navigate = useNavigate() // ✅ added navigate hook
+
   const [user, setUser] = useState<any>(null)
   const [balance, setBalance] = useState(() => {
-    // Initialize balance from localStorage if available
     try {
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
       return storedUser?.balance || 0
@@ -31,25 +561,24 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
   const [success, setSuccess] = useState('')
   const [betAmount, setBetAmount] = useState('10')
   const [spinning, setSpinning] = useState(false)
-  const [selectedOutcome, setSelectedOutcome] = useState(null) // 'win' or 'loss'
-  const [gameState, setGameState] = useState('betting') // 'betting', 'spinning', 'result'
+  const [selectedOutcome, setSelectedOutcome] = useState(null)
+  const [gameState, setGameState] = useState('betting')
   const [timer, setTimer] = useState(10)
-  const [spinTrigger, setSpinTrigger] = useState(0) // Trigger for external spin (Buy Free Spins, etc.)
+  const [spinTrigger, setSpinTrigger] = useState(0)
 
-  // Theme configuration for Sweet Bonanza
   const sweetBonanzaTheme: SlotGameTheme = {
     themeName: 'Sweet Bonanza',
     backgroundImage: '/sweet-bonanza-bg.jpg',
     symbolImages: {
-      '🍇': '/icons/icon.png',      // Grapes (weight: 30 - most common)
-      '🍊': '/icons/icon1.png',     // Orange (weight: 25)
-      '🍋': '/icons/icon7.png',     // Lemon (weight: 20)
-      '🍉': '/icons/icon3.png',     // Watermelon (weight: 15)
-      '🍌': '/icons/icon4.png',     // Banana (weight: 12)
-      '🍎': '/icons/icon5.png',     // Apple (weight: 8)
-      '🍓': '/icons/icon6.png',     // Strawberry (weight: 5)
-      '⭐': '/icons/icon2.png',     // Star (weight: 3)
-      '💎': '/icons/bomb.png',      // Diamond/Lollipop (weight: 2 - least common)
+      '🍇': '/icons/icon.png',
+      '🍊': '/icons/icon1.png',
+      '🍋': '/icons/icon7.png',
+      '🍉': '/icons/icon3.png',
+      '🍌': '/icons/icon4.png',
+      '🍎': '/icons/icon5.png',
+      '🍓': '/icons/icon6.png',
+      '⭐': '/icons/icon2.png',
+      '💎': '/icons/bomb.png',
     },
     symbolWeights: {
       '🍇': 30, '🍊': 25, '🍋': 20, '🍉': 15, '🍌': 12,
@@ -62,50 +591,44 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
     gridHeight: 466.67
   }
 
-  // Original emoji symbols for reference (keeping for weight mapping)
-  const symbolKeys = ['🍇', '🍊', '🍋', '🍉', '🍌', '🍎', '🍓', '⭐', '💎']
-
-  // Game state - winAmount and gameHistory kept for display purposes
   const [winAmount, setWinAmount] = useState(0)
   const [gameHistory, setGameHistory] = useState<any[]>([])
   const [autoSpin, setAutoSpin] = useState(false)
   const [autoSpinCount, setAutoSpinCount] = useState(0)
   const [isWinning, setIsWinning] = useState(false)
+
   const bgMusicRef = useRef<HTMLAudioElement | null>(null)
   const winSoundRef = useRef<HTMLAudioElement | null>(null)
   const lossSoundRef = useRef<HTMLAudioElement | null>(null)
   const spinSoundRef = useRef<HTMLAudioElement | null>(null)
+
   const [musicEnabled, setMusicEnabled] = useState(true)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [showGameRules, setShowGameRules] = useState(false)
   const [doNotShowAgain, setDoNotShowAgain] = useState(false)
   const [showGamesSidebar, setShowGamesSidebar] = useState(false)
   const [showBetPopup, setShowBetPopup] = useState(false)
-  const [thunderCount, setThunderCount] = useState(5) // Track remaining spins (starts at 5, game ends after 5 spins)
+  const [thunderCount, setThunderCount] = useState(5)
 
   const quickBetAmounts = ['10', '50', '100', '500', '1000']
 
-  // Helper function to create beep sound using Web Audio API
-  const createBeepSound = (frequency, duration, type = 'sine') => {
-    if (!soundEnabled || typeof window === 'undefined' || !window.AudioContext && !window.webkitAudioContext) {
-      return
-    }
-    
+  const createBeepSound = (frequency: number, duration: number, type: OscillatorType = 'sine') => {
+    if (!soundEnabled || typeof window === 'undefined' || !window.AudioContext && !(window as any).webkitAudioContext) return
     try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext
       const audioContext = new AudioContext()
       const oscillator = audioContext.createOscillator()
       const gainNode = audioContext.createGain()
-      
+
       oscillator.connect(gainNode)
       gainNode.connect(audioContext.destination)
-      
+
       oscillator.frequency.value = frequency
       oscillator.type = type
-      
+
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration)
-      
+
       oscillator.start(audioContext.currentTime)
       oscillator.stop(audioContext.currentTime + duration)
     } catch (error) {
@@ -113,416 +636,148 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
     }
   }
 
-  // Helper function to play sound
   const playSound = (soundRef, volume = 0.7, useBeep = false, beepFreq = 800) => {
     if (!soundEnabled) return
-    
-    // If beep requested or no sound ref, use beep sound
     if (useBeep || !soundRef?.current) {
       createBeepSound(beepFreq, 0.3)
       return
     }
-    
     const audio = soundRef.current
     if (!audio) {
       createBeepSound(beepFreq, 0.3)
       return
     }
-    
-    // Check if audio has error state
     if (audio.error) {
-      // Audio file has error - fallback to beep
       createBeepSound(beepFreq, 0.3)
       return
     }
-    
     try {
-      // Reset audio to start
       audio.currentTime = 0
       audio.volume = volume
-      
-      // Try to play - handle errors gracefully
       const playPromise = audio.play()
       if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // Any play error - fallback to beep sound silently
-          createBeepSound(beepFreq, 0.3)
-        })
+        playPromise.catch(() => createBeepSound(beepFreq, 0.3))
       }
     } catch (error: any) {
-      // Catch any other errors and fallback silently
       createBeepSound(beepFreq, 0.3)
     }
   }
 
   // Initialize audio
   useEffect(() => {
-    // Create audio elements for sounds
     try {
-      // Background music
       bgMusicRef.current = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3')
       bgMusicRef.current.loop = true
       bgMusicRef.current.volume = 0.3
       bgMusicRef.current.preload = 'auto'
-      
-      // Try to load audio files from public folder, fallback to beep sounds
-      // Use lazy loading to prevent 416 errors with empty/missing files
-      try {
-        // Win sound - create but don't load immediately
-        const winAudio = new Audio('/sweet-bonanza-win.mp3')
-        winAudio.volume = 0.7
-        winAudio.preload = 'none'
-        // Suppress errors - will fallback to beep sound
-        winAudio.addEventListener('error', () => {
-          // Audio file failed to load - set to null to use beep fallback
-          winSoundRef.current = null
-        }, { once: true })
-        winSoundRef.current = winAudio
-      } catch (e) {
-        winSoundRef.current = null
-      }
-      
-      try {
-        // Loss sound - create but don't load immediately
-        const lossAudio = new Audio('/sweet-bonanza-loss.mp3')
-        lossAudio.volume = 0.7
-        lossAudio.preload = 'none'
-        // Suppress errors - will fallback to beep sound
-        lossAudio.addEventListener('error', () => {
-          // Audio file failed to load - set to null to use beep fallback
-          lossSoundRef.current = null
-        }, { once: true })
-        lossSoundRef.current = lossAudio
-      } catch (e) {
-        lossSoundRef.current = null
-      }
-      
-      try {
-        // Spin sound - create but don't load immediately
-        const spinAudio = new Audio('/sweet-bonanza-spin.mp3')
-        spinAudio.volume = 0.5
-        spinAudio.preload = 'none'
-        // Suppress errors - will fallback to beep sound
-        spinAudio.addEventListener('error', () => {
-          // Audio file failed to load - set to null to use beep fallback
-          spinSoundRef.current = null
-        }, { once: true })
-        spinSoundRef.current = spinAudio
-      } catch (e) {
-        spinSoundRef.current = null
-      }
 
-      // Start background music if enabled
-      if (musicEnabled && bgMusicRef.current) {
-        bgMusicRef.current.play().catch(() => {
-          // Autoplay blocked, ignore silently
-        })
-      }
+      const winAudio = new Audio('/sweet-bonanza-win.mp3')
+      winAudio.volume = 0.7
+      winAudio.preload = 'none'
+      winSoundRef.current = winAudio
+
+      const lossAudio = new Audio('/sweet-bonanza-loss.mp3')
+      lossAudio.volume = 0.7
+      lossAudio.preload = 'none'
+      lossSoundRef.current = lossAudio
+
+      const spinAudio = new Audio('/sweet-bonanza-spin.mp3')
+      spinAudio.volume = 0.5
+      spinAudio.preload = 'none'
+      spinSoundRef.current = spinAudio
+
+      if (musicEnabled && bgMusicRef.current) bgMusicRef.current.play().catch(() => {})
     } catch (error) {
       console.error('Error initializing audio:', error)
     }
 
     return () => {
-      // Cleanup audio on unmount
-      if (bgMusicRef.current) {
-        bgMusicRef.current.pause()
-        bgMusicRef.current = null
-      }
-      if (winSoundRef.current) {
-        winSoundRef.current.pause()
-        winSoundRef.current = null
-      }
-      if (lossSoundRef.current) {
-        lossSoundRef.current.pause()
-        lossSoundRef.current = null
-      }
-      if (spinSoundRef.current) {
-        spinSoundRef.current.pause()
-        spinSoundRef.current = null
-      }
+      bgMusicRef.current?.pause()
+      bgMusicRef.current = null
+      winSoundRef.current?.pause()
+      winSoundRef.current = null
+      lossSoundRef.current?.pause()
+      lossSoundRef.current = null
+      spinSoundRef.current?.pause()
+      spinSoundRef.current = null
     }
   }, [])
 
-  // Handle music toggle
   useEffect(() => {
     if (bgMusicRef.current) {
-      if (musicEnabled) {
-        bgMusicRef.current.play().catch(() => {})
-      } else {
-        bgMusicRef.current.pause()
-      }
+      if (musicEnabled) bgMusicRef.current.play().catch(() => {})
+      else bgMusicRef.current.pause()
     }
   }, [musicEnabled])
 
-  // Preload background images
-  useEffect(() => {
-    const bgImage = new Image()
-    bgImage.onload = () => setBgImageLoaded(true)
-    bgImage.onerror = () => {
-      console.warn('Background image failed to load, continuing anyway')
-      setBgImageLoaded(true) // Continue even if image fails
-    }
-    bgImage.src = sweetBonanzaTheme.backgroundImage || '/sweet-bonanza-bg.jpg'
-    
-    // Set timeout to ensure loading doesn't get stuck
-    const timeout = setTimeout(() => {
-      setBgImageLoaded(true)
-    }, 3000)
-    
-    return () => clearTimeout(timeout)
-  }, [])
+  // Navigation helper to replace onClose
+  const closeGame = () => {
+    navigate('/') // ⬅ now uses router instead of onClose
+  }
 
-  // Loading screen progress animation - only start after logo and bg image are loaded, and user data is loaded
-  useEffect(() => {
-    // Immediately set loading to false to allow game to open quickly
-    setLoading(false)
-    
-    // Auto-set images as loaded after a short delay if they haven't loaded (ensures game always opens)
-    const imageTimeout = setTimeout(() => {
-      setLogoLoaded(true)
-      setBgImageLoaded(true)
-    }, 1000) // Reduced to 1 second for faster loading
-
-    // Safety timeout - if loading takes too long, force completion (ensures game always opens)
-    const safetyTimeout = setTimeout(() => {
-      setGameLoading(false)
-      setLoading(false)
-      setLogoLoaded(true)
-      setBgImageLoaded(true)
-      setLoadingProgress(100)
-    }, 2000) // 2 second timeout - game should open quickly
-    
-    return () => {
-      clearTimeout(imageTimeout)
-      clearTimeout(safetyTimeout)
-    }
-  }, []) // Empty dependency array - only run once on mount
-
-  // Progress bar animation - separate effect (runs independently)
-  useEffect(() => {
-    if (gameLoading && logoLoaded && bgImageLoaded && !loading && loadingProgress < 100) {
-      const interval = setInterval(() => {
-        setLoadingProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval)
-            setTimeout(() => {
-              setGameLoading(false)
-            }, 200)
-            return 100
-          }
-          return prev + 3 // Faster progress
-        })
-      }, 50)
-      return () => clearInterval(interval)
-    }
-  }, [gameLoading, logoLoaded, bgImageLoaded, loading, loadingProgress])
-
-  useEffect(() => {
-    // Try to get balance from localStorage first (faster initial load)
-    try {
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
-      if (storedUser?.balance !== undefined && storedUser.balance !== null) {
-        const initialBalance = parseFloat(storedUser.balance) || 0
-        setBalance(initialBalance)
-        setUser(storedUser)
-        setLoading(false) // Set loading to false immediately if we have localStorage data
-      } else {
-        // No stored user, but still set loading to false after a short delay
-        setLoading(false)
-      }
-    } catch (e) {
-      // Ignore localStorage errors, but still set loading to false
-      setLoading(false)
-    }
-    
-    // Then fetch fresh data from server (don't block on this)
-    fetchUserData()
-    
-    // Listen for balance updates from other components
-    const handleUserDataUpdate = (event) => {
-      if (event.detail?.balance !== undefined && event.detail.balance !== null) {
-        const newBalance = parseFloat(event.detail.balance) || 0
-        setBalance(newBalance)
-        setUser(event.detail)
-      }
-    }
-    
-    window.addEventListener('userDataUpdated', handleUserDataUpdate)
-    
-    // Also poll for balance updates periodically (every 10 seconds - reduced frequency)
-    const balanceInterval = setInterval(() => {
-      // Only fetch if not loading and component is still mounted
-      if (!loading) {
-        fetchUserData()
-      }
-    }, 10000) // Increased to 10 seconds to reduce load
-    
-    return () => {
-      window.removeEventListener('userDataUpdated', handleUserDataUpdate)
-      clearInterval(balanceInterval)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
+  // Fetch user data function
   const fetchUserData = async () => {
     try {
-      // Always ensure loading is false (don't block game)
-      setLoading(false)
-      
-      // Check if user is authenticated
-      const token = localStorage.getItem('token')
-      if (!token) {
-        // Don't block game from opening, just use localStorage data
-        try {
-          const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
-          if (storedUser?.balance !== undefined) {
-            setBalance(storedUser.balance)
-            setUser(storedUser)
-            return
-          }
-        } catch (e) {
-          // Continue to try API call
-        }
-        return
-      }
-
       const response = await authAPI.me()
-      
-      // Response data extraction (no logging in production)
-      
-      // Handle different response structures
-      // Backend returns user directly, axios wraps it in response.data
-      const userData = response?.data || response || null
-      
+      const userData = response.data?.data || response.data
       if (userData) {
         setUser(userData)
-        // Get balance - check multiple possible locations
-        const userBalance = userData.balance !== undefined ? userData.balance : 
-                          (userData.user?.balance !== undefined ? userData.user.balance : 0)
-        
-        setBalance(userBalance)
-        
-        // Update localStorage to sync with navbar
-        updateUserData(userData)
-        
-      } else {
-        // Try to get balance from localStorage as fallback
-        try {
-          const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
-          if (storedUser?.balance !== undefined) {
-            setBalance(storedUser.balance)
-            setUser(storedUser)
-          } else {
-            setError('Unable to load user data. Please try again.')
-          }
-        } catch (e) {
-          // Ignore localStorage errors
-          setError('Unable to load user data. Please try again.')
-        }
+        setBalance(userData.balance || 0)
+        localStorage.setItem('user', JSON.stringify(userData))
       }
-    } catch (err: any) {
-      console.error('Sweet Bonanza - API Error:', err)
+    } catch (err) {
       if (import.meta.env.DEV) {
-        console.error('Sweet Bonanza - Error fetching user data:', err)
-        console.error('Sweet Bonanza - Error response:', err.response)
+        console.warn('Error fetching user data:', err)
       }
-      
-      // Handle authentication errors
-      if (err.response?.status === 401) {
-        setError('Session expired. Please log in again.')
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        setTimeout(() => {
-          if (onClose) {
-            onClose()
-          }
-        }, 2000)
-      }
-      
-      // Try to get balance from localStorage as fallback
-      try {
-        const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
-        if (storedUser?.balance !== undefined) {
-          setBalance(storedUser.balance)
-          setUser(storedUser)
-        } else {
-          setError('Unable to load user data. Please try again.')
-        }
-      } catch (e) {
-        // Ignore localStorage errors - game should still open
-      }
-      // Always set loading to false even on error
-      setLoading(false)
-    } finally {
-      // Always ensure loading is false in finally block
-      setLoading(false)
-      setLoading(false)
     }
   }
 
-  // NOTE: All game logic (spinReels, processCascadeAnimation, etc.) has been moved to SlotGameEngine component
-  // This component now only handles page-level UI (balance display, title, banners, sidebar, etc.)
+  const handleQuickBet = (amount: string) => setBetAmount(amount)
 
-  // Quick bet handler
-  const handleQuickBet = (amount) => {
-    setBetAmount(amount)
-  }
-
-  // Reset thunder count when autoplay finishes
   useEffect(() => {
-    if (autoSpinCount === 0 && autoSpin) {
-      setThunderCount(5) // Reset to 5 for next game
-    }
+    if (autoSpinCount === 0 && autoSpin) setThunderCount(5)
   }, [autoSpinCount, autoSpin])
 
-  // All game logic (spin, cascade animations, win calculations) has been moved to SlotGameEngine component
-  // This component now only handles page-level UI (balance display, title, banners, sidebar, etc.)
-
-  // Loading Screen with Pragmatic Play Logo - Show this for all loading states
   if (loading || gameLoading) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
-          <div className="flex flex-col items-center justify-center">
-            {/* PRAGMATIC PLAY Logo Image - Display first */}
-            <div className="mb-8 text-center">
-              <img 
-                src="/pragmaticplay.jpeg" 
-                alt="Pragmatic Play" 
-                className="w-48 md:w-64 h-auto mx-auto"
-                style={{ maxWidth: '300px' }}
-                onLoad={() => setLogoLoaded(true)}
-                onError={() => setLogoLoaded(true)} // Continue even if logo fails
-              />
-            </div>
-            
-            {/* Loading Bar - Only show after logo and bg image are loaded, and user data is loaded */}
-            {logoLoaded && bgImageLoaded && !loading && (
-              <div className="w-64 md:w-80 h-1 bg-gray-700 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-orange-500 transition-all duration-300 ease-out"
-                  style={{ 
-                    width: `${loadingProgress}%`,
-                    boxShadow: '0 0 10px rgba(255, 165, 0, 0.8)'
-                  }}
-                ></div>
-              </div>
-            )}
-            {/* Show loading indicator while user data is being fetched */}
-            {loading && (
-              <div className="w-64 md:w-80 h-1 bg-gray-700 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-orange-500 transition-all duration-300 ease-out animate-pulse"
-                  style={{ 
-                    width: '30%',
-                    boxShadow: '0 0 10px rgba(255, 165, 0, 0.8)'
-                  }}
-                ></div>
-              </div>
-            )}
+        <div className="flex flex-col items-center justify-center">
+          <div className="mb-8 text-center">
+            <img 
+              src="/pragmaticplay.jpeg" 
+              alt="Pragmatic Play" 
+              className="w-48 md:w-64 h-auto mx-auto"
+              style={{ maxWidth: '300px' }}
+              onLoad={() => setLogoLoaded(true)}
+              onError={() => setLogoLoaded(true)}
+            />
           </div>
+          {logoLoaded && bgImageLoaded && !loading && (
+            <div className="w-64 md:w-80 h-1 bg-gray-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-orange-500 transition-all duration-300 ease-out"
+                style={{ width: `${loadingProgress}%`, boxShadow: '0 0 10px rgba(255, 165, 0, 0.8)' }}
+              ></div>
+            </div>
+          )}
+          {loading && (
+            <div className="w-64 md:w-80 h-1 bg-gray-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-orange-500 transition-all duration-300 ease-out animate-pulse"
+                style={{ width: '30%', boxShadow: '0 0 10px rgba(255, 165, 0, 0.8)' }}
+              ></div>
+            </div>
+          )}
         </div>
+      </div>
     )
   }
+
+
+
+
+
+
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black relative flex w-full flex-col" style={{ 
@@ -741,14 +996,14 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
 
                 {/* Center - Game Grid and Sidebar Toggle */}
                 <div className="flex-1 flex flex-col items-center justify-center min-h-0 relative w-full pt-2 md:pt-4" style={{ minWidth: 0, position: 'relative', overflow: 'visible', zIndex: 30, pointerEvents: 'auto', width: '100%' }}>
-                  {/* Sidebar Toggle Button - Inside game area, right beside grid - Always visible */}
+                  {/* Sidebar Toggle Button - Hidden on mobile for full-width game */}
                   <button
                     onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
                       setShowGamesSidebar(!showGamesSidebar)
                     }}
-                    className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 z-50 w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 bg-purple-600 text-white rounded-full flex items-center justify-center hover:bg-purple-700 transition-all shadow-xl border-2 border-white/30 hover:scale-110 cursor-pointer"
+                    className="hidden md:flex absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 z-50 w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 bg-purple-600 text-white rounded-full items-center justify-center hover:bg-purple-700 transition-all shadow-xl border-2 border-white/30 hover:scale-110 cursor-pointer"
                     style={{ 
                       right: showGamesSidebar ? 'calc(100% + 8px)' : '4px',
                       transition: 'right 0.3s ease-in-out',
@@ -826,7 +1081,7 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
                       setError('')
                       
                       // Play win sound - use beep if audio not available
-                      playSound(winSoundRef, 0.7, !winSoundRef.current || winSoundRef.current?.error, 1000)
+                      playSound(winSoundRef, 0.7, !winSoundRef.current || !!winSoundRef.current?.error, 1000)
                       
                       setGameHistory(prev => [{
                         id: Date.now(),
@@ -840,7 +1095,7 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
                       setTimeout(() => {
                         setIsWinning(false)
                         setSuccess('')
-                      }, 3000)
+                      }, 5000)
                       
                       // Refresh user data
                       setTimeout(async () => {
@@ -856,12 +1111,12 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
                     onLoss={() => {
                       setError('')
                       setSuccess('')
-                      playSound(lossSoundRef, 0.7, !lossSoundRef.current || lossSoundRef.current?.error, 300)
+                      playSound(lossSoundRef, 0.7, !lossSoundRef.current || !!lossSoundRef.current?.error, 300)
                     }}
                     onError={(errorMessage) => {
                       setError(errorMessage)
                       setSuccess('')
-                      setTimeout(() => setError(''), 5000)
+                      setTimeout(() => setError(''), 7000)
                     }}
                     autoSpin={autoSpin}
                     autoSpinCount={autoSpinCount}
@@ -1055,9 +1310,9 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
                 </div>
               </div>
 
-          {/* Right Sidebar - Other Realtime Games - Beside Game Div */}
+          {/* Right Sidebar - Other Realtime Games - Hidden on mobile */}
             <div 
-              className={`bg-white/95 backdrop-blur-md z-40 shadow-2xl overflow-y-auto flex-shrink-0 transition-all duration-300 ease-in-out ${
+              className={`hidden md:block bg-white/95 backdrop-blur-md z-40 shadow-2xl overflow-y-auto flex-shrink-0 transition-all duration-300 ease-in-out ${
                 showGamesSidebar ? 'w-[280px] md:w-[320px] opacity-100' : 'w-0 opacity-0 overflow-hidden'
               }`}
               style={{ 
@@ -1421,17 +1676,15 @@ function SweetBonanzaPage({ onClose, onSwitchGame }: SweetBonanzaPageProps = {})
         `}</style>
         
         {/* Close Button */}
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="fixed top-4 right-4 z-50 w-12 h-12 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all"
-            title="Close Game"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        )}
+        <button
+          onClick={closeGame}
+          className="fixed top-4 right-4 z-50 w-12 h-12 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all"
+          title="Close Game"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
   )
 }

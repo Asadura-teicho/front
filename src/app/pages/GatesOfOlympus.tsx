@@ -1,4 +1,487 @@
+// import { useState, useEffect, useRef } from 'react'
+// import { authAPI } from '../../lib/api/auth.api'
+// import gatesOfOlympusAPI from '../../lib/api/gatesOfOlympus.api'
+// import { updateUserData } from '../../lib/utils/auth'
+// import SlotGameEngine, { SlotGameTheme } from '../components/SlotGameEngine'
+// import { GameSelector } from '../components/GameSelector'
+
+// interface GatesOfOlympusPageProps {
+//   onClose?: () => void
+//   onSwitchGame?: (gameId?: string) => void
+// }
+
+// function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps = {}) {
+  
+//   const [user, setUser] = useState<any>(null)
+//   const [balance, setBalance] = useState(() => {
+//     // Initialize balance from localStorage if available
+//     try {
+//       const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+//       return storedUser?.balance || 0
+//     } catch {
+//       return 0
+//     }
+//   })
+//   const [loading, setLoading] = useState(true)
+//   const [gameLoading, setGameLoading] = useState(true)
+//   const [loadingProgress, setLoadingProgress] = useState(0)
+//   const [logoLoaded, setLogoLoaded] = useState(false)
+//   const [bgImageLoaded, setBgImageLoaded] = useState(false)
+//   const [error, setError] = useState('')
+//   const [success, setSuccess] = useState('')
+//   const [betAmount, setBetAmount] = useState('10')
+//   const [spinning, setSpinning] = useState(false)
+//   const [selectedOutcome, setSelectedOutcome] = useState(null) // 'win' or 'loss'
+//   const [gameState, setGameState] = useState('betting') // 'betting', 'spinning', 'result'
+//   const [timer, setTimer] = useState(10)
+//   const [spinTrigger, setSpinTrigger] = useState(0) // Trigger for external spin (Buy Free Spins, etc.)
+
+//   // Theme configuration for Gates of Olympus
+//   const gatesOfOlympusTheme: SlotGameTheme = {
+//     themeName: 'Gates of Olympus',
+//     backgroundImage: '/Gol/gate of olympus Bg.jpg',
+//     symbolImages: {
+//       '⚡': '/Gol/gooicon1.png',              // Symbol 1 (weight: 30 - most common)
+//       '🔥': '/Gol/gooicon2.png',              // Symbol 2 (weight: 25)
+//       '🌊': '/Gol/gooicon3.png',              // Symbol 3 (weight: 20)
+//       '🌪️': '/Gol/gooicon4.png',             // Symbol 4 (weight: 15)
+//       '⚔️': '/Gol/gooicon5.png',             // Symbol 5 (weight: 12)
+//       '🛡️': '/Gol/gooicon cup.png',          // Cup (weight: 8)
+//       '👑': '/Gol/gooicon crown.png',        // Crown (weight: 5)
+//       '⭐': '/Gol/gooicon time glass.png',    // Time Glass/Scatter (weight: 3)
+//       '💎': '/Gol/gooicon ring.png',         // Ring/Bonus (weight: 2 - least common)
+//     },
+//     symbolWeights: {
+//       '⚡': 30, '🔥': 25, '🌊': 20, '🌪️': 15, '⚔️': 12,
+//       '🛡️': 8, '👑': 5, '⭐': 3, '💎': 2
+//     },
+//     defaultSymbol: '⚡',
+//     gridColumns: 6,
+//     gridRows: 5,
+//     gridWidth: 560,
+//     gridHeight: 466.67
+//   }
+
+//   // Original emoji symbols for reference
+//   const symbolKeys = ['⚡', '🔥', '🌊', '🌪️', '⚔️', '🛡️', '👑', '⭐', '💎']
+
+//   // Game state - winAmount and gameHistory kept for display purposes
+//   const [winAmount, setWinAmount] = useState(0)
+//   const [gameHistory, setGameHistory] = useState<any[]>([])
+//   const [autoSpin, setAutoSpin] = useState(false)
+//   const [autoSpinCount, setAutoSpinCount] = useState(0)
+//   const [isWinning, setIsWinning] = useState(false)
+//   const bgMusicRef = useRef<HTMLAudioElement | null>(null)
+//   const winSoundRef = useRef<HTMLAudioElement | null>(null)
+//   const lossSoundRef = useRef<HTMLAudioElement | null>(null)
+//   const spinSoundRef = useRef<HTMLAudioElement | null>(null)
+//   const [musicEnabled, setMusicEnabled] = useState(true)
+//   const [soundEnabled, setSoundEnabled] = useState(true)
+//   const [showGameRules, setShowGameRules] = useState(false)
+//   const [doNotShowAgain, setDoNotShowAgain] = useState(false)
+//   const [showGamesSidebar, setShowGamesSidebar] = useState(false)
+//   const [showBetPopup, setShowBetPopup] = useState(false)
+//   const [thunderCount, setThunderCount] = useState(5)
+
+//   const quickBetAmounts = ['10', '50', '100', '500', '1000']
+
+//   // Helper function to create beep sound using Web Audio API
+//   const createBeepSound = (frequency, duration, type = 'sine') => {
+//     if (!soundEnabled || typeof window === 'undefined' || !window.AudioContext && !(window as any).webkitAudioContext) {
+//       return
+//     }
+    
+//     try {
+//       const AudioContext = window.AudioContext || (window as any).webkitAudioContext
+//       const audioContext = new AudioContext()
+//       const oscillator = audioContext.createOscillator()
+//       const gainNode = audioContext.createGain()
+      
+//       oscillator.connect(gainNode)
+//       gainNode.connect(audioContext.destination)
+      
+//       oscillator.frequency.value = frequency
+//       oscillator.type = type
+      
+//       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+//       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration)
+      
+//       oscillator.start(audioContext.currentTime)
+//       oscillator.stop(audioContext.currentTime + duration)
+//     } catch (error) {
+//       console.error('Error creating beep sound:', error)
+//     }
+//   }
+
+//   // Helper function to play sound
+//   const playSound = (soundRef, volume = 0.7, useBeep = false, beepFreq = 800) => {
+//     if (!soundEnabled) return
+    
+//     // If beep requested or no sound ref, use beep sound
+//     if (useBeep || !soundRef?.current) {
+//       createBeepSound(beepFreq, 0.3)
+//       return
+//     }
+    
+//     const audio = soundRef.current
+//     if (!audio) {
+//       createBeepSound(beepFreq, 0.3)
+//       return
+//     }
+    
+//     // Check if audio has error state
+//     if (audio.error) {
+//       // Audio file has error - fallback to beep
+//       createBeepSound(beepFreq, 0.3)
+//       return
+//     }
+    
+//     try {
+//       // Reset audio to start
+//       audio.currentTime = 0
+//       audio.volume = volume
+      
+//       // Try to play - handle errors gracefully
+//       const playPromise = audio.play()
+//       if (playPromise !== undefined) {
+//         playPromise.catch(() => {
+//           // Any play error - fallback to beep sound silently
+//           createBeepSound(beepFreq, 0.3)
+//         })
+//       }
+//     } catch (error: any) {
+//       // Catch any other errors and fallback silently
+//       createBeepSound(beepFreq, 0.3)
+//     }
+//   }
+
+//   // Initialize audio
+//   useEffect(() => {
+//     try {
+//       bgMusicRef.current = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3')
+//       bgMusicRef.current.loop = true
+//       bgMusicRef.current.volume = 0.3
+//       bgMusicRef.current.preload = 'auto'
+      
+//       // Try to load audio files from public folder, fallback to beep sounds
+//       // Use lazy loading to prevent 416 errors with empty/missing files
+//       try {
+//         // Win sound - create but don't load immediately
+//         const winAudio = new Audio('/gates-of-olympus-win.mp3')
+//         winAudio.volume = 0.7
+//         winAudio.preload = 'none'
+//         // Suppress errors - will fallback to beep sound
+//         winAudio.addEventListener('error', () => {
+//           // Audio file failed to load - set to null to use beep fallback
+//           winSoundRef.current = null
+//         }, { once: true })
+//         winSoundRef.current = winAudio
+//       } catch (e) {
+//         winSoundRef.current = null
+//       }
+      
+//       try {
+//         // Loss sound - create but don't load immediately
+//         const lossAudio = new Audio('/gates-of-olympus-loss.mp3')
+//         lossAudio.volume = 0.7
+//         lossAudio.preload = 'none'
+//         // Suppress errors - will fallback to beep sound
+//         lossAudio.addEventListener('error', () => {
+//           // Audio file failed to load - set to null to use beep fallback
+//           lossSoundRef.current = null
+//         }, { once: true })
+//         lossSoundRef.current = lossAudio
+//       } catch (e) {
+//         lossSoundRef.current = null
+//       }
+      
+//       try {
+//         // Spin sound - create but don't load immediately
+//         const spinAudio = new Audio('/gates-of-olympus-spin.mp3')
+//         spinAudio.volume = 0.5
+//         spinAudio.preload = 'none'
+//         // Suppress errors - will fallback to beep sound
+//         spinAudio.addEventListener('error', () => {
+//           // Audio file failed to load - set to null to use beep fallback
+//           spinSoundRef.current = null
+//         }, { once: true })
+//         spinSoundRef.current = spinAudio
+//       } catch (e) {
+//         spinSoundRef.current = null
+//       }
+
+//       if (musicEnabled && bgMusicRef.current) {
+//         bgMusicRef.current.play().catch(() => {})
+//       }
+//     } catch (error) {
+//       console.error('Error initializing audio:', error)
+//     }
+
+//     return () => {
+//       if (bgMusicRef.current) {
+//         bgMusicRef.current.pause()
+//         bgMusicRef.current = null
+//       }
+//       if (winSoundRef.current) {
+//         winSoundRef.current.pause()
+//         winSoundRef.current = null
+//       }
+//       if (lossSoundRef.current) {
+//         lossSoundRef.current.pause()
+//         lossSoundRef.current = null
+//       }
+//       if (spinSoundRef.current) {
+//         spinSoundRef.current.pause()
+//         spinSoundRef.current = null
+//       }
+//     }
+//   }, [])
+
+//   // Handle music toggle
+//   useEffect(() => {
+//     if (bgMusicRef.current) {
+//       if (musicEnabled) {
+//         bgMusicRef.current.play().catch(() => {})
+//       } else {
+//         bgMusicRef.current.pause()
+//       }
+//     }
+//   }, [musicEnabled])
+
+//   // Preload background images
+//   useEffect(() => {
+//     const bgImage = new Image()
+//     bgImage.onload = () => setBgImageLoaded(true)
+//     bgImage.onerror = () => {
+//       console.warn('Background image failed to load, continuing anyway')
+//       setBgImageLoaded(true)
+//     }
+//     bgImage.src = gatesOfOlympusTheme.backgroundImage || '/Gol/gate of olympus Bg.jpg'
+    
+//     const timeout = setTimeout(() => {
+//       setBgImageLoaded(true)
+//     }, 3000)
+    
+//     return () => clearTimeout(timeout)
+//   }, [])
+
+//   // Loading screen progress animation
+//   useEffect(() => {
+//     setLoading(false)
+    
+//     const imageTimeout = setTimeout(() => {
+//       setLogoLoaded(true)
+//       setBgImageLoaded(true)
+//     }, 1000)
+
+//     const safetyTimeout = setTimeout(() => {
+//       setGameLoading(false)
+//       setLoading(false)
+//       setLogoLoaded(true)
+//       setBgImageLoaded(true)
+//       setLoadingProgress(100)
+//     }, 2000)
+    
+//     return () => {
+//       clearTimeout(imageTimeout)
+//       clearTimeout(safetyTimeout)
+//     }
+//   }, [])
+
+//   // Progress bar animation
+//   useEffect(() => {
+//     if (gameLoading && logoLoaded && bgImageLoaded && !loading && loadingProgress < 100) {
+//       const interval = setInterval(() => {
+//         setLoadingProgress(prev => {
+//           if (prev >= 100) {
+//             clearInterval(interval)
+//             setTimeout(() => {
+//               setGameLoading(false)
+//             }, 200)
+//             return 100
+//           }
+//           return prev + 3
+//         })
+//       }, 50)
+//       return () => clearInterval(interval)
+//     }
+//   }, [gameLoading, logoLoaded, bgImageLoaded, loading, loadingProgress])
+
+//   useEffect(() => {
+//     try {
+//       const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+//       if (storedUser?.balance !== undefined && storedUser.balance !== null) {
+//         const initialBalance = parseFloat(storedUser.balance) || 0
+//         setBalance(initialBalance)
+//         setUser(storedUser)
+//         setLoading(false)
+//       } else {
+//         setLoading(false)
+//       }
+//     } catch (e) {
+//       setLoading(false)
+//     }
+    
+//     fetchUserData()
+    
+//     const handleUserDataUpdate = (event) => {
+//       if (event.detail?.balance !== undefined && event.detail.balance !== null) {
+//         const newBalance = parseFloat(event.detail.balance) || 0
+//         setBalance(newBalance)
+//         setUser(event.detail)
+//       }
+//     }
+    
+//     window.addEventListener('userDataUpdated', handleUserDataUpdate)
+    
+//     const balanceInterval = setInterval(() => {
+//       if (!loading) {
+//         fetchUserData()
+//       }
+//     }, 10000)
+    
+//     return () => {
+//       window.removeEventListener('userDataUpdated', handleUserDataUpdate)
+//       clearInterval(balanceInterval)
+//     }
+//   }, [])
+
+//   const fetchUserData = async () => {
+//     try {
+//       setLoading(false)
+      
+//       const token = localStorage.getItem('token')
+//       if (!token) {
+//         try {
+//           const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+//           if (storedUser?.balance !== undefined) {
+//             setBalance(storedUser.balance)
+//             setUser(storedUser)
+//             return
+//           }
+//         } catch (e) {
+//           // Continue to try API call
+//         }
+//         return
+//       }
+
+//       const response = await authAPI.me()
+      
+//       const userData = response?.data || response || null
+      
+//       if (userData) {
+//         setUser(userData)
+//         const userBalance = userData.balance !== undefined ? userData.balance : 
+//                           (userData.user?.balance !== undefined ? userData.user.balance : 0)
+        
+//         setBalance(userBalance)
+//         updateUserData(userData)
+//       } else {
+//         try {
+//           const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+//           if (storedUser?.balance !== undefined) {
+//             setBalance(storedUser.balance)
+//             setUser(storedUser)
+//           } else {
+//             setError('Unable to load user data. Please try again.')
+//           }
+//         } catch (e) {
+//           setError('Unable to load user data. Please try again.')
+//         }
+//       }
+//     } catch (err: any) {
+//       console.error('Gates of Olympus - API Error:', err)
+//       if (import.meta.env.DEV) {
+//         console.error('Gates of Olympus - Error fetching user data:', err)
+//       }
+      
+//       if (err.response?.status === 401) {
+//         setError('Session expired. Please log in again.')
+//         localStorage.removeItem('token')
+//         localStorage.removeItem('user')
+//         setTimeout(() => {
+//           if (onClose) {
+//             onClose()
+//           }
+//         }, 2000)
+//       }
+      
+//       try {
+//         const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+//         if (storedUser?.balance !== undefined) {
+//           setBalance(storedUser.balance)
+//           setUser(storedUser)
+//         } else {
+//           setError('Unable to load user data. Please try again.')
+//         }
+//       } catch (e) {
+//         // Ignore localStorage errors
+//       }
+//       setLoading(false)
+//     } finally {
+//       setLoading(false)
+//     }
+//   }
+
+//   // Quick bet handler
+//   const handleQuickBet = (amount) => {
+//     setBetAmount(amount)
+//   }
+
+//   // Reset thunder count when autoplay finishes
+//   useEffect(() => {
+//     if (autoSpinCount === 0 && autoSpin) {
+//       setThunderCount(5)
+//     }
+//   }, [autoSpinCount, autoSpin])
+
+//   // Loading Screen with Pragmatic Play Logo
+//   if (loading || gameLoading) {
+//     return (
+//       <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
+//           <div className="flex flex-col items-center justify-center">
+//             <div className="mb-8 text-center">
+//               <img 
+//                 src="/pragmaticplay.jpeg" 
+//                 alt="Pragmatic Play" 
+//                 className="w-48 md:w-64 h-auto mx-auto"
+//                 style={{ maxWidth: '300px' }}
+//                 onLoad={() => setLogoLoaded(true)}
+//                 onError={() => setLogoLoaded(true)}
+//               />
+//             </div>
+            
+//             {logoLoaded && bgImageLoaded && !loading && (
+//               <div className="w-64 md:w-80 h-1 bg-gray-700 rounded-full overflow-hidden">
+//                 <div 
+//                   className="h-full bg-orange-500 transition-all duration-300 ease-out"
+//                   style={{ 
+//                     width: `${loadingProgress}%`,
+//                     boxShadow: '0 0 10px rgba(255, 165, 0, 0.8)'
+//                   }}
+//                 ></div>
+//               </div>
+//             )}
+//             {loading && (
+//               <div className="w-64 md:w-80 h-1 bg-gray-700 rounded-full overflow-hidden">
+//                 <div 
+//                   className="h-full bg-orange-500 transition-all duration-300 ease-out animate-pulse"
+//                   style={{ 
+//                     width: '30%',
+//                     boxShadow: '0 0 10px rgba(255, 165, 0, 0.8)'
+//                   }}
+//                 ></div>
+//               </div>
+//             )}
+//           </div>
+//         </div>
+//     )
+//   }
+
+
+
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { authAPI } from '../../lib/api/auth.api'
 import gatesOfOlympusAPI from '../../lib/api/gatesOfOlympus.api'
 import { updateUserData } from '../../lib/utils/auth'
@@ -6,15 +489,14 @@ import SlotGameEngine, { SlotGameTheme } from '../components/SlotGameEngine'
 import { GameSelector } from '../components/GameSelector'
 
 interface GatesOfOlympusPageProps {
-  onClose?: () => void
   onSwitchGame?: (gameId?: string) => void
 }
 
-function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps = {}) {
-  
+function GatesOfOlympusPage({ onSwitchGame }: GatesOfOlympusPageProps = {}) {
+  const navigate = useNavigate() // ✅ added navigate hook
+
   const [user, setUser] = useState<any>(null)
   const [balance, setBalance] = useState(() => {
-    // Initialize balance from localStorage if available
     try {
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
       return storedUser?.balance || 0
@@ -28,28 +510,41 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
   const [logoLoaded, setLogoLoaded] = useState(false)
   const [bgImageLoaded, setBgImageLoaded] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const [betAmount, setBetAmount] = useState('10')
   const [spinning, setSpinning] = useState(false)
-  const [selectedOutcome, setSelectedOutcome] = useState(null) // 'win' or 'loss'
-  const [gameState, setGameState] = useState('betting') // 'betting', 'spinning', 'result'
-  const [timer, setTimer] = useState(10)
-  const [spinTrigger, setSpinTrigger] = useState(0) // Trigger for external spin (Buy Free Spins, etc.)
+  const [winAmount, setWinAmount] = useState(0)
+  const [gameHistory, setGameHistory] = useState<any[]>([])
+  const [autoSpin, setAutoSpin] = useState(false)
+  const [autoSpinCount, setAutoSpinCount] = useState(0)
+  const [isWinning, setIsWinning] = useState(false)
 
-  // Theme configuration for Gates of Olympus
+  const bgMusicRef = useRef<HTMLAudioElement | null>(null)
+  const winSoundRef = useRef<HTMLAudioElement | null>(null)
+  const lossSoundRef = useRef<HTMLAudioElement | null>(null)
+  const spinSoundRef = useRef<HTMLAudioElement | null>(null)
+
+  const [musicEnabled, setMusicEnabled] = useState(true)
+  const [soundEnabled, setSoundEnabled] = useState(true)
+  const [showGamesSidebar, setShowGamesSidebar] = useState(false)
+  const [thunderCount, setThunderCount] = useState(5)
+  const [success, setSuccess] = useState('')
+  const [spinTrigger, setSpinTrigger] = useState(0)
+  const [showBetPopup, setShowBetPopup] = useState(false)
+  const [showGameRules, setShowGameRules] = useState(false)
+
   const gatesOfOlympusTheme: SlotGameTheme = {
     themeName: 'Gates of Olympus',
     backgroundImage: '/Gol/gate of olympus Bg.jpg',
     symbolImages: {
-      '⚡': '/Gol/gooicon1.png',              // Symbol 1 (weight: 30 - most common)
-      '🔥': '/Gol/gooicon2.png',              // Symbol 2 (weight: 25)
-      '🌊': '/Gol/gooicon3.png',              // Symbol 3 (weight: 20)
-      '🌪️': '/Gol/gooicon4.png',             // Symbol 4 (weight: 15)
-      '⚔️': '/Gol/gooicon5.png',             // Symbol 5 (weight: 12)
-      '🛡️': '/Gol/gooicon cup.png',          // Cup (weight: 8)
-      '👑': '/Gol/gooicon crown.png',        // Crown (weight: 5)
-      '⭐': '/Gol/gooicon time glass.png',    // Time Glass/Scatter (weight: 3)
-      '💎': '/Gol/gooicon ring.png',         // Ring/Bonus (weight: 2 - least common)
+      '⚡': '/Gol/gooicon1.png',
+      '🔥': '/Gol/gooicon2.png',
+      '🌊': '/Gol/gooicon3.png',
+      '🌪️': '/Gol/gooicon4.png',
+      '⚔️': '/Gol/gooicon5.png',
+      '🛡️': '/Gol/gooicon cup.png',
+      '👑': '/Gol/gooicon crown.png',
+      '⭐': '/Gol/gooicon time glass.png',
+      '💎': '/Gol/gooicon ring.png',
     },
     symbolWeights: {
       '⚡': 30, '🔥': 25, '🌊': 20, '🌪️': 15, '⚔️': 12,
@@ -62,50 +557,23 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
     gridHeight: 466.67
   }
 
-  // Original emoji symbols for reference
-  const symbolKeys = ['⚡', '🔥', '🌊', '🌪️', '⚔️', '🛡️', '👑', '⭐', '💎']
-
-  // Game state - winAmount and gameHistory kept for display purposes
-  const [winAmount, setWinAmount] = useState(0)
-  const [gameHistory, setGameHistory] = useState<any[]>([])
-  const [autoSpin, setAutoSpin] = useState(false)
-  const [autoSpinCount, setAutoSpinCount] = useState(0)
-  const [isWinning, setIsWinning] = useState(false)
-  const bgMusicRef = useRef<HTMLAudioElement | null>(null)
-  const winSoundRef = useRef<HTMLAudioElement | null>(null)
-  const lossSoundRef = useRef<HTMLAudioElement | null>(null)
-  const spinSoundRef = useRef<HTMLAudioElement | null>(null)
-  const [musicEnabled, setMusicEnabled] = useState(true)
-  const [soundEnabled, setSoundEnabled] = useState(true)
-  const [showGameRules, setShowGameRules] = useState(false)
-  const [doNotShowAgain, setDoNotShowAgain] = useState(false)
-  const [showGamesSidebar, setShowGamesSidebar] = useState(false)
-  const [showBetPopup, setShowBetPopup] = useState(false)
-  const [thunderCount, setThunderCount] = useState(5)
-
-  const quickBetAmounts = ['10', '50', '100', '500', '1000']
-
-  // Helper function to create beep sound using Web Audio API
   const createBeepSound = (frequency, duration, type = 'sine') => {
-    if (!soundEnabled || typeof window === 'undefined' || !window.AudioContext && !(window as any).webkitAudioContext) {
-      return
-    }
-    
+    if (!soundEnabled || typeof window === 'undefined' || !window.AudioContext && !(window as any).webkitAudioContext) return
     try {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext
       const audioContext = new AudioContext()
       const oscillator = audioContext.createOscillator()
       const gainNode = audioContext.createGain()
-      
+
       oscillator.connect(gainNode)
       gainNode.connect(audioContext.destination)
-      
+
       oscillator.frequency.value = frequency
       oscillator.type = type
-      
+
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration)
-      
+
       oscillator.start(audioContext.currentTime)
       oscillator.stop(audioContext.currentTime + duration)
     } catch (error) {
@@ -113,370 +581,124 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
     }
   }
 
-  // Helper function to play sound
   const playSound = (soundRef, volume = 0.7, useBeep = false, beepFreq = 800) => {
     if (!soundEnabled) return
-    
-    // If beep requested or no sound ref, use beep sound
-    if (useBeep || !soundRef?.current) {
-      createBeepSound(beepFreq, 0.3)
-      return
-    }
-    
+    if (useBeep || !soundRef?.current) { createBeepSound(beepFreq, 0.3); return }
     const audio = soundRef.current
-    if (!audio) {
-      createBeepSound(beepFreq, 0.3)
-      return
-    }
-    
-    // Check if audio has error state
-    if (audio.error) {
-      // Audio file has error - fallback to beep
-      createBeepSound(beepFreq, 0.3)
-      return
-    }
-    
+    if (!audio || audio.error) { createBeepSound(beepFreq, 0.3); return }
     try {
-      // Reset audio to start
       audio.currentTime = 0
       audio.volume = volume
-      
-      // Try to play - handle errors gracefully
       const playPromise = audio.play()
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // Any play error - fallback to beep sound silently
-          createBeepSound(beepFreq, 0.3)
-        })
-      }
-    } catch (error: any) {
-      // Catch any other errors and fallback silently
-      createBeepSound(beepFreq, 0.3)
-    }
+      if (playPromise !== undefined) playPromise.catch(() => createBeepSound(beepFreq, 0.3))
+    } catch { createBeepSound(beepFreq, 0.3) }
   }
 
-  // Initialize audio
   useEffect(() => {
     try {
       bgMusicRef.current = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3')
       bgMusicRef.current.loop = true
       bgMusicRef.current.volume = 0.3
       bgMusicRef.current.preload = 'auto'
-      
-      // Try to load audio files from public folder, fallback to beep sounds
-      // Use lazy loading to prevent 416 errors with empty/missing files
-      try {
-        // Win sound - create but don't load immediately
-        const winAudio = new Audio('/gates-of-olympus-win.mp3')
-        winAudio.volume = 0.7
-        winAudio.preload = 'none'
-        // Suppress errors - will fallback to beep sound
-        winAudio.addEventListener('error', () => {
-          // Audio file failed to load - set to null to use beep fallback
-          winSoundRef.current = null
-        }, { once: true })
-        winSoundRef.current = winAudio
-      } catch (e) {
-        winSoundRef.current = null
-      }
-      
-      try {
-        // Loss sound - create but don't load immediately
-        const lossAudio = new Audio('/gates-of-olympus-loss.mp3')
-        lossAudio.volume = 0.7
-        lossAudio.preload = 'none'
-        // Suppress errors - will fallback to beep sound
-        lossAudio.addEventListener('error', () => {
-          // Audio file failed to load - set to null to use beep fallback
-          lossSoundRef.current = null
-        }, { once: true })
-        lossSoundRef.current = lossAudio
-      } catch (e) {
-        lossSoundRef.current = null
-      }
-      
-      try {
-        // Spin sound - create but don't load immediately
-        const spinAudio = new Audio('/gates-of-olympus-spin.mp3')
-        spinAudio.volume = 0.5
-        spinAudio.preload = 'none'
-        // Suppress errors - will fallback to beep sound
-        spinAudio.addEventListener('error', () => {
-          // Audio file failed to load - set to null to use beep fallback
-          spinSoundRef.current = null
-        }, { once: true })
-        spinSoundRef.current = spinAudio
-      } catch (e) {
-        spinSoundRef.current = null
-      }
 
-      if (musicEnabled && bgMusicRef.current) {
-        bgMusicRef.current.play().catch(() => {})
-      }
+      const winAudio = new Audio('/gates-of-olympus-win.mp3')
+      winAudio.volume = 0.7
+      winAudio.preload = 'none'
+      winSoundRef.current = winAudio
+
+      const lossAudio = new Audio('/gates-of-olympus-loss.mp3')
+      lossAudio.volume = 0.7
+      lossAudio.preload = 'none'
+      lossSoundRef.current = lossAudio
+
+      const spinAudio = new Audio('/gates-of-olympus-spin.mp3')
+      spinAudio.volume = 0.5
+      spinAudio.preload = 'none'
+      spinSoundRef.current = spinAudio
+
+      if (musicEnabled && bgMusicRef.current) bgMusicRef.current.play().catch(() => {})
     } catch (error) {
       console.error('Error initializing audio:', error)
     }
 
     return () => {
-      if (bgMusicRef.current) {
-        bgMusicRef.current.pause()
-        bgMusicRef.current = null
-      }
-      if (winSoundRef.current) {
-        winSoundRef.current.pause()
-        winSoundRef.current = null
-      }
-      if (lossSoundRef.current) {
-        lossSoundRef.current.pause()
-        lossSoundRef.current = null
-      }
-      if (spinSoundRef.current) {
-        spinSoundRef.current.pause()
-        spinSoundRef.current = null
-      }
+      bgMusicRef.current?.pause()
+      bgMusicRef.current = null
+      winSoundRef.current?.pause()
+      winSoundRef.current = null
+      lossSoundRef.current?.pause()
+      lossSoundRef.current = null
+      spinSoundRef.current?.pause()
+      spinSoundRef.current = null
     }
   }, [])
 
-  // Handle music toggle
   useEffect(() => {
-    if (bgMusicRef.current) {
-      if (musicEnabled) {
-        bgMusicRef.current.play().catch(() => {})
-      } else {
-        bgMusicRef.current.pause()
-      }
-    }
+    if (bgMusicRef.current) musicEnabled ? bgMusicRef.current.play().catch(()=>{}) : bgMusicRef.current.pause()
   }, [musicEnabled])
 
-  // Preload background images
-  useEffect(() => {
-    const bgImage = new Image()
-    bgImage.onload = () => setBgImageLoaded(true)
-    bgImage.onerror = () => {
-      console.warn('Background image failed to load, continuing anyway')
-      setBgImageLoaded(true)
-    }
-    bgImage.src = gatesOfOlympusTheme.backgroundImage || '/Gol/gate of olympus Bg.jpg'
-    
-    const timeout = setTimeout(() => {
-      setBgImageLoaded(true)
-    }, 3000)
-    
-    return () => clearTimeout(timeout)
-  }, [])
+  const closeGame = () => { navigate('/') } // ✅ replaces onClose
 
-  // Loading screen progress animation
-  useEffect(() => {
-    setLoading(false)
-    
-    const imageTimeout = setTimeout(() => {
-      setLogoLoaded(true)
-      setBgImageLoaded(true)
-    }, 1000)
-
-    const safetyTimeout = setTimeout(() => {
-      setGameLoading(false)
-      setLoading(false)
-      setLogoLoaded(true)
-      setBgImageLoaded(true)
-      setLoadingProgress(100)
-    }, 2000)
-    
-    return () => {
-      clearTimeout(imageTimeout)
-      clearTimeout(safetyTimeout)
-    }
-  }, [])
-
-  // Progress bar animation
-  useEffect(() => {
-    if (gameLoading && logoLoaded && bgImageLoaded && !loading && loadingProgress < 100) {
-      const interval = setInterval(() => {
-        setLoadingProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval)
-            setTimeout(() => {
-              setGameLoading(false)
-            }, 200)
-            return 100
-          }
-          return prev + 3
-        })
-      }, 50)
-      return () => clearInterval(interval)
-    }
-  }, [gameLoading, logoLoaded, bgImageLoaded, loading, loadingProgress])
-
-  useEffect(() => {
-    try {
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
-      if (storedUser?.balance !== undefined && storedUser.balance !== null) {
-        const initialBalance = parseFloat(storedUser.balance) || 0
-        setBalance(initialBalance)
-        setUser(storedUser)
-        setLoading(false)
-      } else {
-        setLoading(false)
-      }
-    } catch (e) {
-      setLoading(false)
-    }
-    
-    fetchUserData()
-    
-    const handleUserDataUpdate = (event) => {
-      if (event.detail?.balance !== undefined && event.detail.balance !== null) {
-        const newBalance = parseFloat(event.detail.balance) || 0
-        setBalance(newBalance)
-        setUser(event.detail)
-      }
-    }
-    
-    window.addEventListener('userDataUpdated', handleUserDataUpdate)
-    
-    const balanceInterval = setInterval(() => {
-      if (!loading) {
-        fetchUserData()
-      }
-    }, 10000)
-    
-    return () => {
-      window.removeEventListener('userDataUpdated', handleUserDataUpdate)
-      clearInterval(balanceInterval)
-    }
-  }, [])
-
+  // Fetch user data function
   const fetchUserData = async () => {
     try {
-      setLoading(false)
-      
-      const token = localStorage.getItem('token')
-      if (!token) {
-        try {
-          const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
-          if (storedUser?.balance !== undefined) {
-            setBalance(storedUser.balance)
-            setUser(storedUser)
-            return
-          }
-        } catch (e) {
-          // Continue to try API call
-        }
-        return
-      }
-
       const response = await authAPI.me()
-      
-      const userData = response?.data || response || null
-      
+      const userData = response.data?.data || response.data
       if (userData) {
         setUser(userData)
-        const userBalance = userData.balance !== undefined ? userData.balance : 
-                          (userData.user?.balance !== undefined ? userData.user.balance : 0)
-        
-        setBalance(userBalance)
-        updateUserData(userData)
-      } else {
-        try {
-          const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
-          if (storedUser?.balance !== undefined) {
-            setBalance(storedUser.balance)
-            setUser(storedUser)
-          } else {
-            setError('Unable to load user data. Please try again.')
-          }
-        } catch (e) {
-          setError('Unable to load user data. Please try again.')
-        }
+        setBalance(userData.balance || 0)
+        localStorage.setItem('user', JSON.stringify(userData))
       }
-    } catch (err: any) {
-      console.error('Gates of Olympus - API Error:', err)
+    } catch (err) {
       if (import.meta.env.DEV) {
-        console.error('Gates of Olympus - Error fetching user data:', err)
+        console.warn('Error fetching user data:', err)
       }
-      
-      if (err.response?.status === 401) {
-        setError('Session expired. Please log in again.')
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        setTimeout(() => {
-          if (onClose) {
-            onClose()
-          }
-        }, 2000)
-      }
-      
-      try {
-        const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
-        if (storedUser?.balance !== undefined) {
-          setBalance(storedUser.balance)
-          setUser(storedUser)
-        } else {
-          setError('Unable to load user data. Please try again.')
-        }
-      } catch (e) {
-        // Ignore localStorage errors
-      }
-      setLoading(false)
-    } finally {
-      setLoading(false)
     }
   }
 
-  // Quick bet handler
-  const handleQuickBet = (amount) => {
-    setBetAmount(amount)
-  }
+  const handleQuickBet = (amount: string) => setBetAmount(amount)
 
-  // Reset thunder count when autoplay finishes
-  useEffect(() => {
-    if (autoSpinCount === 0 && autoSpin) {
-      setThunderCount(5)
-    }
-  }, [autoSpinCount, autoSpin])
+  useEffect(() => { if (autoSpinCount===0 && autoSpin) setThunderCount(5) }, [autoSpinCount, autoSpin])
 
-  // Loading Screen with Pragmatic Play Logo
   if (loading || gameLoading) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
-          <div className="flex flex-col items-center justify-center">
-            <div className="mb-8 text-center">
-              <img 
-                src="/pragmaticplay.jpeg" 
-                alt="Pragmatic Play" 
-                className="w-48 md:w-64 h-auto mx-auto"
-                style={{ maxWidth: '300px' }}
-                onLoad={() => setLogoLoaded(true)}
-                onError={() => setLogoLoaded(true)}
-              />
-            </div>
-            
-            {logoLoaded && bgImageLoaded && !loading && (
-              <div className="w-64 md:w-80 h-1 bg-gray-700 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-orange-500 transition-all duration-300 ease-out"
-                  style={{ 
-                    width: `${loadingProgress}%`,
-                    boxShadow: '0 0 10px rgba(255, 165, 0, 0.8)'
-                  }}
-                ></div>
-              </div>
-            )}
-            {loading && (
-              <div className="w-64 md:w-80 h-1 bg-gray-700 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-orange-500 transition-all duration-300 ease-out animate-pulse"
-                  style={{ 
-                    width: '30%',
-                    boxShadow: '0 0 10px rgba(255, 165, 0, 0.8)'
-                  }}
-                ></div>
-              </div>
-            )}
+        <div className="flex flex-col items-center justify-center">
+          <div className="mb-8 text-center">
+            <img 
+              src="/pragmaticplay.jpeg" 
+              alt="Pragmatic Play" 
+              className="w-48 md:w-64 h-auto mx-auto"
+              style={{ maxWidth: '300px' }}
+              onLoad={() => setLogoLoaded(true)}
+              onError={() => setLogoLoaded(true)}
+            />
           </div>
+          {logoLoaded && bgImageLoaded && !loading && (
+            <div className="w-64 md:w-80 h-1 bg-gray-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-orange-500 transition-all duration-300 ease-out"
+                style={{ width: `${loadingProgress}%`, boxShadow: '0 0 10px rgba(255, 165, 0, 0.8)' }}
+              ></div>
+            </div>
+          )}
+          {loading && (
+            <div className="w-64 md:w-80 h-1 bg-gray-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-orange-500 transition-all duration-300 ease-out animate-pulse"
+                style={{ width: '30%', boxShadow: '0 0 10px rgba(255, 165, 0, 0.8)' }}
+              ></div>
+            </div>
+          )}
         </div>
+      </div>
     )
   }
+
+
+
+
+
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black flex w-full flex-col" style={{ 
@@ -688,14 +910,14 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
 
                 {/* Center - Game Grid and Sidebar Toggle */}
                 <div className="flex-1 flex flex-col items-center justify-center min-h-0 relative w-full pt-2 md:pt-4" style={{ minWidth: 0, position: 'relative', overflow: 'visible', zIndex: 30, pointerEvents: 'auto', width: '100%' }}>
-                  {/* Sidebar Toggle Button - Inside game area, right beside grid - Always visible */}
+                  {/* Sidebar Toggle Button - Hidden on mobile for full-width game */}
                   <button
                     onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
                       setShowGamesSidebar(!showGamesSidebar)
                     }}
-                    className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 z-50 w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 bg-purple-600 text-white rounded-full flex items-center justify-center hover:bg-purple-700 transition-all shadow-xl border-2 border-white/30 hover:scale-110 cursor-pointer"
+                    className="hidden md:flex absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 z-50 w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11 bg-purple-600 text-white rounded-full items-center justify-center hover:bg-purple-700 transition-all shadow-xl border-2 border-white/30 hover:scale-110 cursor-pointer"
                     style={{ 
                       right: showGamesSidebar ? 'calc(100% + 8px)' : '4px',
                       transition: 'right 0.3s ease-in-out',
@@ -784,7 +1006,7 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
                       setTimeout(() => {
                         setIsWinning(false)
                         setSuccess('')
-                      }, 3000)
+                      }, 5000)
                       
                       setTimeout(async () => {
                         try {
@@ -804,7 +1026,7 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
                     onError={(errorMessage) => {
                       setError(errorMessage)
                       setSuccess('')
-                      setTimeout(() => setError(''), 5000)
+                      setTimeout(() => setError(''), 7000)
                     }}
                     autoSpin={autoSpin}
                     autoSpinCount={autoSpinCount}
@@ -998,9 +1220,9 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
                 </div>
               </div>
 
-          {/* Right Sidebar - Other Realtime Games */}
+          {/* Right Sidebar - Other Realtime Games - Hidden on mobile */}
             <div 
-              className={`bg-white/95 backdrop-blur-md z-40 shadow-2xl overflow-y-auto flex-shrink-0 transition-all duration-300 ease-in-out ${
+              className={`hidden md:block bg-white/95 backdrop-blur-md z-40 shadow-2xl overflow-y-auto flex-shrink-0 transition-all duration-300 ease-in-out ${
                 showGamesSidebar ? 'w-[280px] md:w-[320px] opacity-100' : 'w-0 opacity-0 overflow-hidden'
               }`}
               style={{ 
@@ -1348,17 +1570,15 @@ function GatesOfOlympusPage({ onClose, onSwitchGame }: GatesOfOlympusPageProps =
         `}</style>
         
         {/* Close Button */}
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="fixed top-4 right-4 z-50 w-12 h-12 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all"
-            title="Close Game"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        )}
+        <button
+          onClick={closeGame}
+          className="fixed top-4 right-4 z-50 w-12 h-12 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all"
+          title="Close Game"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
   )
 }
